@@ -1,0 +1,34 @@
+services:
+  # Backend API Service
+  - type: web
+    name: llm-council-backend
+    runtime: python
+    buildCommand: uv sync && uv pip install --system -e .
+    startCommand: uv run uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: llm-council-frontend
+          property: host
+    healthCheckPath: /
+    plan: free
+
+  # Frontend Static Site
+  # Note: Set VITE_API_BASE_URL environment variable manually in Render dashboard
+  # after backend deploys. Format: https://llm-council-backend.onrender.com
+  - type: web
+    name: llm-council-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    plan: free
+
