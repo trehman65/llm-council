@@ -21,14 +21,12 @@ services:
   # Frontend Static Site
   # Note: Set VITE_API_BASE_URL environment variable manually in Render dashboard
   # after backend deploys. Format: https://llm-council-backend.onrender.com
-  - type: web
+  - type: static
     name: llm-council-frontend
-    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-    plan: free
 
