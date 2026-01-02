@@ -10,7 +10,7 @@ This guide will help you deploy the LLM Council application to Render.
 
 ## Deployment Steps
 
-### Option 1: Using render.yaml (Recommended)
+### Step 1: Deploy Backend (Using render.yaml)
 
 1. **Push your code to GitHub**
    ```bash
@@ -19,29 +19,56 @@ This guide will help you deploy the LLM Council application to Render.
    git push origin main
    ```
 
-2. **Connect to Render**
+2. **Deploy Backend via Blueprint**
    - Go to [Render Dashboard](https://dashboard.render.com)
    - Click "New +" → "Blueprint"
    - Connect your GitHub repository
-   - Render will automatically detect `render.yaml`
+   - Render will automatically detect `render.yaml` and deploy the backend
 
-3. **Set Environment Variables**
-   
-   **Backend Service:**
-   - `OPENROUTER_API_KEY`: Your OpenRouter API key (mark as "Secret")
-   - `FRONTEND_URL`: Will be set automatically after frontend deploys
-   - `PORT`: Automatically provided by Render
-   
-   **Frontend Service:**
-   - `VITE_API_BASE_URL`: Set this to your backend URL (e.g., `https://llm-council-backend.onrender.com`)
-     - **Important**: This must be set BEFORE building, as Vite needs it at build time
-     - You may need to set this manually after the backend deploys, then trigger a rebuild
+3. **Set Backend Environment Variables**
+   - In the backend service settings, add:
+     - `OPENROUTER_API_KEY`: Your OpenRouter API key (mark as "Secret")
+   - `PORT` is automatically provided by Render
+   - **Note**: You'll set `FRONTEND_URL` after the frontend deploys
 
-4. **Deploy**
-   - Click "Apply" to deploy both services
-   - Wait for both services to build and deploy
+4. **Wait for backend to deploy**
+   - Note your backend URL (e.g., `https://llm-council-backend.onrender.com`)
 
-### Option 2: Manual Setup
+### Step 2: Deploy Frontend (Manual Setup)
+
+Since Render's Blueprint doesn't support static sites well, deploy the frontend manually:
+
+1. **Create Static Site**
+   - In Render Dashboard, click "New +" → "Static Site"
+   - Connect your GitHub repository
+
+2. **Configure Frontend**
+   - **Name**: `llm-council-frontend` (or your preferred name)
+   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Publish Directory**: `frontend/dist`
+   - **Environment Variables**:
+     - `VITE_API_BASE_URL`: Your backend URL from Step 1 (e.g., `https://llm-council-backend.onrender.com`)
+       - **Important**: This must be set BEFORE building, as Vite needs it at build time
+
+3. **Deploy Frontend**
+   - Click "Create Static Site"
+   - Wait for it to build and deploy
+   - Note your frontend URL (e.g., `https://llm-council-frontend.onrender.com`)
+
+### Step 3: Connect Backend and Frontend
+
+1. **Update Backend CORS**
+   - Go to your backend service settings
+   - Add/Update environment variable:
+     - `FRONTEND_URL`: Your frontend URL from Step 2 (e.g., `https://llm-council-frontend.onrender.com`)
+   - This allows the frontend to make API calls to the backend
+
+2. **Verify Deployment**
+   - Test backend: Visit `https://your-backend.onrender.com/` (should show `{"status":"ok"}`)
+   - Test frontend: Visit your frontend URL
+   - Create a test conversation to verify everything works
+
+### Alternative: Manual Setup (Both Services)
 
 #### Backend Service
 

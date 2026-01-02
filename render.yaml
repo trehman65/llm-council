@@ -10,19 +10,9 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: 3.11
-      - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: llm-council-frontend
-          property: host
     healthCheckPath: /
     plan: free
 
-  # Frontend Static Site
-  # Note: Set VITE_API_BASE_URL environment variable manually in Render dashboard
-  # after backend deploys. Format: https://llm-council-backend.onrender.com
-  - type: static_site
-    name: llm-council-frontend
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+# Note: Frontend must be deployed separately as a Static Site via Render Dashboard
+# See DEPLOY.md for detailed instructions
 
