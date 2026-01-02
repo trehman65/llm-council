@@ -9,7 +9,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: PYTHON_VERSION
-        value: 3.11
+        value: 3.11.5
     healthCheckPath: /
     plan: free
 
