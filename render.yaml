@@ -3,13 +3,13 @@ services:
   - type: web
     name: llm-council-backend
     runtime: python
-    buildCommand: uv sync && uv pip install --system -e .
-    startCommand: uv run uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -e .
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: PYTHON_VERSION
-        value: 3.11.5
+        value: 3.11.0
     healthCheckPath: /
     plan: free
 
