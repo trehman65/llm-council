@@ -9,6 +9,7 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Load conversations on mount
   useEffect(() => {
@@ -28,6 +29,7 @@ function App() {
       setConversations(convs);
     } catch (error) {
       console.error('Failed to load conversations:', error);
+      // Don't show alert on initial load, just log it
     }
   };
 
@@ -48,8 +50,10 @@ function App() {
         ...conversations,
       ]);
       setCurrentConversationId(newConv.id);
+      setSidebarOpen(false); // Close sidebar on mobile after creating
     } catch (error) {
       console.error('Failed to create conversation:', error);
+      alert(`Failed to create conversation: ${error.message}\n\nMake sure the backend is running on http://localhost:8001`);
     }
   };
 
@@ -186,14 +190,35 @@ function App() {
       <Sidebar
         conversations={conversations}
         currentConversationId={currentConversationId}
-        onSelectConversation={handleSelectConversation}
+        onSelectConversation={(id) => {
+          handleSelectConversation(id);
+          setSidebarOpen(false); // Close sidebar on mobile after selection
+        }}
         onNewConversation={handleNewConversation}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
-      <ChatInterface
-        conversation={currentConversation}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      <div className="main-content">
+        <button 
+          className="mobile-menu-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <span className="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <ChatInterface
+          conversation={currentConversation}
+          onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+        />
+      </div>
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>
+      )}
     </div>
   );
 }

@@ -96,3 +96,42 @@ body {
   border-left: 4px solid #ddd;
   color: #666;
 }
+
+/* Mobile responsive markdown */
+@media (max-width: 768px) {
+  .markdown-content {
+    padding: 10px;
+  }
+
+  .markdown-content p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+  }
+
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3,
+  .markdown-content h4,
+  .markdown-content h5,
+  .markdown-content h6 {
+    margin: 12px 0 6px 0;
+    font-size: 1.1em;
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    margin: 0 0 10px 0;
+    padding-left: 20px;
+  }
+
+  .markdown-content pre {
+    padding: 10px;
+    font-size: 12px;
+    overflow-x: auto;
+  }
+
+  .markdown-content code {
+    font-size: 0.85em;
+    padding: 2px 4px;
+  }
+}

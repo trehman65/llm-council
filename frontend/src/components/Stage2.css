@@ -151,3 +151,95 @@
   color: #999;
   font-size: 12px;
 }
+
+.ranking-content {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .stage2 h4 {
+    font-size: 13px;
+    margin: 16px 0 6px 0;
+  }
+
+  .stage-description {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .aggregate-rankings {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .aggregate-rankings h4 {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .aggregate-item {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .rank-position {
+    font-size: 14px;
+    min-width: 30px;
+  }
+
+  .rank-model {
+    font-size: 12px;
+  }
+
+  .rank-score {
+    font-size: 11px;
+  }
+
+  .stage2 .tabs {
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .stage2 .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stage2 .tab {
+    padding: 6px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .stage2 .tab-content {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .ranking-model {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+
+  .ranking-content {
+    font-size: 13px;
+  }
+
+  .parsed-ranking {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .parsed-ranking strong {
+    font-size: 12px;
+  }
+
+  .parsed-ranking li {
+    font-size: 12px;
+  }
+}

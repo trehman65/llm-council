@@ -5,6 +5,31 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
+  z-index: 1000;
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  color: #666;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  line-height: 1;
+  padding: 0;
+}
+
+.sidebar-close:hover {
+  background: #e0e0e0;
 }
 
 .sidebar-header {
@@ -75,4 +100,36 @@
 .conversation-meta {
   color: #999;
   font-size: 12px;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close {
+    display: block;
+  }
+
+  .sidebar-header {
+    padding-top: 48px;
+  }
+
+  .conversation-item {
+    padding: 14px;
+  }
+
+  .conversation-title {
+    font-size: 15px;
+  }
 }

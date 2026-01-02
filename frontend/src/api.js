@@ -5,33 +5,54 @@
 // Use environment variable in production, fallback to localhost for development
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
+// Log API base URL in development
+if (import.meta.env.DEV) {
+  console.log('API Base URL:', API_BASE);
+}
+
 export const api = {
   /**
    * List all conversations.
    */
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
-    if (!response.ok) {
-      throw new Error('Failed to list conversations');
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to list conversations: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error(`Cannot connect to backend at ${API_BASE}. Make sure the backend is running.`);
+      }
+      throw error;
     }
-    return response.json();
   },
 
   /**
    * Create a new conversation.
    */
   async createConversation() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create conversation');
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create conversation: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error(`Cannot connect to backend at ${API_BASE}. Make sure the backend is running.`);
+      }
+      throw error;
     }
-    return response.json();
   },
 
   /**

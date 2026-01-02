@@ -18,7 +18,10 @@ app = FastAPI(title="LLM Council API")
 # Enable CORS - allow local development and Render frontend
 cors_origins = [
     "http://localhost:5173",
+    "http://localhost:5174",  # Vite may use different ports
     "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
 ]
 # Add Render frontend URL if provided via environment variable
 if os.getenv("FRONTEND_URL"):
