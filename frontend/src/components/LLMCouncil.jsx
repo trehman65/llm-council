@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import { api } from '../api';
 import './LLMCouncil.css';
+
+// Get API base URL for debugging
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
 const LLMCouncil = () => {
   const [question, setQuestion] = useState('');
@@ -19,6 +22,14 @@ const LLMCouncil = () => {
   const [stage2Data, setStage2Data] = useState(null);
   const [stage3Data, setStage3Data] = useState(null);
   const [stage2Metadata, setStage2Metadata] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Show debug info in production if API URL looks wrong
+  useEffect(() => {
+    if (API_BASE.includes('localhost') && window.location.hostname !== 'localhost') {
+      setShowDebug(true);
+    }
+  }, []);
 
   // Map backend model names to display names and colors
   const getModelInfo = (modelName) => {
@@ -58,19 +69,25 @@ const LLMCouncil = () => {
     setStage2Metadata(null);
 
     try {
+      console.log('Creating conversation...');
       // Create a new conversation
       const conversation = await api.createConversation();
+      console.log('Conversation created:', conversation.id);
       setConversationId(conversation.id);
 
       // Send message with streaming - collect all data but don't auto-advance stages
+      console.log('Starting message stream...');
       await api.sendMessageStream(conversation.id, question, (eventType, event) => {
+        console.log('Stream event:', eventType, event);
         switch (eventType) {
           case 'stage1_start':
+            console.log('Stage 1 started');
             setStage('stage1');
             setLoading(true);
             break;
 
           case 'stage1_complete':
+            console.log('Stage 1 complete, data:', event.data);
             if (event.data && Array.isArray(event.data)) {
               const formattedResponses = event.data.map((result) => {
                 const modelInfo = getModelInfo(result.model);
@@ -85,7 +102,12 @@ const LLMCouncil = () => {
               setStage1Data(formattedResponses);
               setResponses(formattedResponses);
               setLoading(false);
+              console.log('Stage 1 responses set:', formattedResponses.length);
               // STOP HERE - wait for user to click "Proceed to Cross-Review"
+            } else {
+              console.error('Stage 1 data invalid:', event.data);
+              setError('Failed to get model responses. Please try again.');
+              setLoading(false);
             }
             break;
 
@@ -166,9 +188,10 @@ const LLMCouncil = () => {
         }
       });
     } catch (error) {
-      console.error('Error:', error);
-      setError(error.message || 'Failed to submit question to council');
+      console.error('Error in handleSubmit:', error);
+      setError(error.message || 'Failed to submit question to council. Please check your connection and try again.');
       setLoading(false);
+      setStage('input');
     }
   };
 
@@ -223,9 +246,27 @@ const LLMCouncil = () => {
           </p>
         </div>
 
+        {showDebug && (
+          <div className="error-message" style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', borderColor: '#ffc107' }}>
+            <strong>⚠️ Configuration Warning:</strong>
+            <br />
+            API URL is set to: <code>{API_BASE}</code>
+            <br />
+            <small style={{ marginTop: '0.5rem', display: 'block' }}>
+              In Render, set <code>VITE_API_BASE_URL</code> environment variable to your backend URL (e.g., https://your-backend.onrender.com) and rebuild.
+            </small>
+          </div>
+        )}
+
         {error && (
           <div className="error-message">
-            {error}
+            <strong>Error:</strong> {error}
+            <br />
+            <small style={{ marginTop: '0.5rem', display: 'block' }}>
+              API URL: <code>{API_BASE}</code>
+              <br />
+              Check browser console (F12) for more details. Make sure VITE_API_BASE_URL is set correctly in Render.
+            </small>
           </div>
         )}
 

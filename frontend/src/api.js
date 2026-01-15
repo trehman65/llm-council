@@ -5,9 +5,10 @@
 // Use environment variable in production, fallback to localhost for development
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 
-// Log API base URL in development
-if (import.meta.env.DEV) {
-  console.log('API Base URL:', API_BASE);
+// Log API base URL (always log to help debug production issues)
+console.log('API Base URL:', API_BASE);
+if (!API_BASE || API_BASE === 'http://localhost:8001') {
+  console.warn('⚠️ API_BASE is using default localhost. In production, set VITE_API_BASE_URL environment variable.');
 }
 
 export const api = {
@@ -96,42 +97,62 @@ export const api = {
    * @returns {Promise<void>}
    */
   async sendMessageStream(conversationId, content, onEvent) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message/stream`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
+    try {
+      console.log('Sending stream request to:', `${API_BASE}/api/conversations/${conversationId}/message/stream`);
+      const response = await fetch(
+        `${API_BASE}/api/conversations/${conversationId}/message/stream`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Stream response error:', response.status, errorText);
+        throw new Error(`Failed to send message: ${response.status} ${response.statusText}. ${errorText}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error('Failed to send message');
-    }
+      if (!response.body) {
+        throw new Error('Response body is null - streaming not supported');
+      }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          console.log('Stream completed');
+          break;
+        }
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          try {
-            const event = JSON.parse(data);
-            onEvent(event.type, event);
-          } catch (e) {
-            console.error('Failed to parse SSE event:', e);
+        for (const line of lines) {
+          if (line.trim() && line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data) {
+              try {
+                const event = JSON.parse(data);
+                onEvent(event.type, event);
+              } catch (e) {
+                console.error('Failed to parse SSE event:', e, 'Data:', data);
+              }
+            }
           }
         }
       }
+    } catch (error) {
+      console.error('Stream error:', error);
+      onEvent('error', { message: error.message || 'Streaming failed' });
+      throw error;
     }
   },
 };
