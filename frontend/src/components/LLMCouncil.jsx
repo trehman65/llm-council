@@ -1,10 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
 import './LLMCouncil.css';
 
 // Get API base URL for debugging
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+
+// Safe inline markdown component for ranking reasoning
+// ReactMarkdown v10 expects a single string as children, not arrays/nodes.
+// We normalize everything into a string before passing it in.
+const InlineMarkdown = ({ text }) => {
+  const safeText = typeof text === 'string' ? text : String(text ?? '');
+  try {
+    return (
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <span>{children}</span>,
+          h1: ({ children }) => <span>{children}</span>,
+          h2: ({ children }) => <span>{children}</span>,
+          h3: ({ children }) => <span>{children}</span>,
+        }}
+      >
+        {safeText}
+      </ReactMarkdown>
+    );
+  } catch (e) {
+    console.error('Error rendering markdown:', e);
+    return <span>{safeText}</span>;
+  }
+};
 
 const LLMCouncil = () => {
   const [question, setQuestion] = useState('');
@@ -117,6 +142,7 @@ const LLMCouncil = () => {
             break;
 
           case 'stage2_complete':
+            console.log('Stage 2 complete, data:', event.data);
             if (event.data && Array.isArray(event.data) && event.metadata) {
               setStage2Metadata(event.metadata);
               const labelToModel = event.metadata.label_to_model || {};
@@ -155,9 +181,12 @@ const LLMCouncil = () => {
                   rankings: rankings
                 };
               });
+              console.log('Formatted reviews:', formattedReviews);
               setStage2Data(formattedReviews);
               setReviews(formattedReviews);
               // Don't change stage - wait for user to click "Generate Final Answer"
+            } else {
+              console.error('Stage 2 data invalid:', event.data, event.metadata);
             }
             break;
 
@@ -346,9 +375,9 @@ const LLMCouncil = () => {
                     <div className={`response-dot ${responses[selectedTab]?.color}`} />
                     <h3 className="response-model">{responses[selectedTab]?.model}</h3>
                   </div>
-                  <p className="response-text">
-                    {responses[selectedTab]?.response}
-                  </p>
+                  <div className="response-text">
+                    <ReactMarkdown>{responses[selectedTab]?.response || ''}</ReactMarkdown>
+                  </div>
                 </div>
 
                 <div className="action-buttons">
@@ -383,27 +412,45 @@ const LLMCouncil = () => {
                 <Loader2 className="spinner" />
                 <span className="loading-text">Models are reviewing each other's responses...</span>
               </div>
-            ) : reviews.length > 0 ? (
+            ) : reviews && reviews.length > 0 ? (
               <>
                 <div className="reviews-list">
-                  {reviews.map((review, idx) => (
-                    <div key={idx} className="review-card">
-                      <h3 className="review-title">
-                        {review.reviewer}'s Rankings
-                      </h3>
-                      <div className="rankings-list">
-                        {review.rankings.map((rank, ridx) => (
-                          <div key={ridx} className="ranking-item">
-                            <span className="ranking-number">#{rank.rank}</span>
-                            <div className="ranking-content">
-                              <span className="ranking-model">{rank.model}</span>
-                              <span className="ranking-reasoning">— {rank.reasoning}</span>
-                            </div>
-                          </div>
-                        ))}
+                  {reviews.map((review, idx) => {
+                    if (!review || !review.reviewer) {
+                      console.error('Invalid review at index', idx, review);
+                      return null;
+                    }
+                    return (
+                      <div key={idx} className="review-card">
+                        <h3 className="review-title">
+                          {review.reviewer}'s Rankings
+                        </h3>
+                        <div className="rankings-list">
+                          {review.rankings && Array.isArray(review.rankings) && review.rankings.length > 0 ? (
+                            review.rankings.map((rank, ridx) => {
+                              if (!rank || !rank.model) {
+                                console.error('Invalid rank at index', ridx, rank);
+                                return null;
+                              }
+                              return (
+                                <div key={ridx} className="ranking-item">
+                                  <span className="ranking-number">#{rank.rank || ridx + 1}</span>
+                                  <div className="ranking-content">
+                                    <span className="ranking-model">{rank.model}</span>
+                                    <span className="ranking-reasoning">
+                                      <InlineMarkdown text={`— ${rank.reasoning || 'No reasoning provided'}`} />
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className="ranking-item">No rankings available</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="action-buttons">
@@ -422,7 +469,16 @@ const LLMCouncil = () => {
                   </button>
                 </div>
               </>
-            ) : null}
+            ) : (
+              <div className="loading-state">
+                <p>No reviews available yet. Waiting for peer reviews...</p>
+                {stage2Data && stage2Data.length > 0 && (
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#94a3b8' }}>
+                    Data received but not formatted correctly. Check console for details.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -441,7 +497,9 @@ const LLMCouncil = () => {
             ) : (
               <>
                 <div className="final-answer">
-                  <div className="final-answer-text" dangerouslySetInnerHTML={{ __html: formatFinalAnswer(finalAnswer) }} />
+                  <div className="final-answer-text">
+                    <ReactMarkdown>{cleanFinalAnswer(finalAnswer)}</ReactMarkdown>
+                  </div>
                 </div>
 
                 <button
@@ -464,36 +522,24 @@ const LLMCouncil = () => {
   );
 };
 
-// Format final answer with markdown-like styling
-const formatFinalAnswer = (text) => {
+// Clean final answer text - remove artifacts and normalize
+const cleanFinalAnswer = (text) => {
   if (!text) return '';
   
-  // Convert markdown-style headers
-  let formatted = text
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$2</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$3</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Remove "$3" artifacts (likely from regex replacement issues or backend artifacts)
+  let cleaned = text
+    .replace(/\$3/g, '') // Remove standalone $3
+    .replace(/\$\d+/g, '') // Remove any $ followed by digits
+    .replace(/\n\s*\$\d+\s*\n/g, '\n\n') // Remove $3 on its own line
+    .replace(/\n\s*\$\d+\s*/g, '\n'); // Remove $3 at end of line
   
-  // Convert bullet points
-  formatted = formatted.replace(/^[-•] (.+)$/gm, '<li>$1</li>');
+  // Remove any single asterisks on their own line (likely artifacts)
+  cleaned = cleaned.replace(/^\s*\*\s*$/gm, '');
   
-  // Wrap consecutive list items in ul tags
-  formatted = formatted.replace(/(<li>.*<\/li>\n?)+/g, (match) => {
-    return '<ul>' + match + '</ul>';
-  });
+  // Clean up multiple consecutive newlines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
-  // Convert line breaks to paragraphs
-  const paragraphs = formatted.split('\n\n').filter(p => p.trim());
-  formatted = paragraphs.map(p => {
-    if (p.startsWith('<h') || p.startsWith('<ul') || p.startsWith('<li')) {
-      return p;
-    }
-    return '<p>' + p + '</p>';
-  }).join('');
-  
-  return formatted;
+  return cleaned.trim();
 };
 
 export default LLMCouncil;
