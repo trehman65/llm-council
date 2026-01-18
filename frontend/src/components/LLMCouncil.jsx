@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
+import ConversationHistory from './ConversationHistory';
 import './LLMCouncil.css';
 
 // Get API base URL for debugging
@@ -274,6 +275,105 @@ const LLMCouncil = () => {
     setStage2Metadata(null);
   };
 
+  // Load a conversation from history
+  const handleLoadConversation = (conversation) => {
+    setConversationId(conversation.id);
+    
+    // Find the last message with all stages
+    const lastMessage = conversation.messages
+      .slice()
+      .reverse()
+      .find(msg => msg.role === 'assistant' && msg.stage1 && msg.stage2 && msg.stage3);
+    
+    if (lastMessage) {
+      // Find the user question (last user message before this assistant message)
+      const userMessages = conversation.messages.filter(msg => msg.role === 'user');
+      if (userMessages.length > 0) {
+        setQuestion(userMessages[userMessages.length - 1].content);
+      }
+      
+      // Restore Stage 1 data
+      if (lastMessage.stage1 && Array.isArray(lastMessage.stage1)) {
+        const formattedResponses = lastMessage.stage1.map((result) => {
+          const modelInfo = getModelInfo(result.model);
+          return {
+            model: modelInfo.name,
+            response: result.response || '',
+            id: result.model,
+            color: modelInfo.color,
+            originalModel: result.model
+          };
+        });
+        setStage1Data(formattedResponses);
+        setResponses(formattedResponses);
+      }
+      
+      // Restore Stage 2 data
+      if (lastMessage.stage2 && Array.isArray(lastMessage.stage2) && lastMessage.stage1) {
+        // Reconstruct label_to_model mapping (Response A = first model, Response B = second, etc.)
+        const labelToModel = {};
+        lastMessage.stage1.forEach((resp, idx) => {
+          const label = String.fromCharCode(65 + idx); // A, B, C, ...
+          labelToModel[`Response ${label}`] = resp.model;
+        });
+        
+        const formattedReviews = lastMessage.stage2.map((review) => {
+          const modelInfo = getModelInfo(review.model);
+          const rankings = [];
+          
+          // Parse rankings using the reconstructed mapping
+          if (review.parsed_ranking && Array.isArray(review.parsed_ranking)) {
+            review.parsed_ranking.forEach((label, idx) => {
+              const originalModel = labelToModel[label];
+              if (originalModel) {
+                const rankedModelInfo = getModelInfo(originalModel);
+                rankings.push({
+                  model: rankedModelInfo.name,
+                  rank: idx + 1,
+                  reasoning: extractReasoning(review.ranking) || 'Ranked based on peer review'
+                });
+              }
+            });
+          }
+          
+          return {
+            reviewer: modelInfo.name,
+            rankings: rankings
+          };
+        });
+        setStage2Data(formattedReviews);
+        setReviews(formattedReviews);
+      }
+      
+      // Restore Stage 3 data
+      if (lastMessage.stage3 && lastMessage.stage3.response) {
+        setStage3Data(lastMessage.stage3.response);
+        setFinalAnswer(lastMessage.stage3.response);
+      }
+      
+      // Determine which stage to show (show the last completed stage)
+      if (lastMessage.stage3 && lastMessage.stage3.response) {
+        setStage('stage3');
+      } else if (lastMessage.stage2 && lastMessage.stage2.length > 0) {
+        setStage('stage2');
+      } else if (lastMessage.stage1 && lastMessage.stage1.length > 0) {
+        setStage('stage1');
+      }
+    } else {
+      // No complete message, just show the question
+      const userMessages = conversation.messages.filter(msg => msg.role === 'user');
+      if (userMessages.length > 0) {
+        setQuestion(userMessages[userMessages.length - 1].content);
+        setStage('input');
+      }
+    }
+  };
+
+  // Handle new conversation
+  const handleNewConversation = () => {
+    reset();
+  };
+
   // Get models from config (for display)
   const models = [
     { name: 'Claude Sonnet 4.5', id: 'claude', color: 'bg-orange-500' },
@@ -284,6 +384,11 @@ const LLMCouncil = () => {
 
   return (
     <div className="llm-council-container">
+      <ConversationHistory
+        onSelectConversation={handleLoadConversation}
+        onNewConversation={handleNewConversation}
+        currentConversationId={conversationId}
+      />
       <div className="llm-council-content">
         <div className="llm-council-header">
           <div className="header-title">

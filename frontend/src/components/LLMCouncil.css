@@ -8,6 +8,15 @@
 .llm-council-content {
   max-width: 72rem;
   margin: 0 auto;
+  margin-left: 280px; /* Space for sidebar */
+  transition: margin-left 0.3s ease;
+}
+
+/* Adjust content when sidebar is closed (mobile) */
+@media (max-width: 768px) {
+  .llm-council-content {
+    margin-left: 0;
+  }
 }
 
 .llm-council-header {
