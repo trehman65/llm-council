@@ -49,6 +49,7 @@ const LLMCouncil = () => {
   const [stage3Data, setStage3Data] = useState(null);
   const [stage2Metadata, setStage2Metadata] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [expandedRankings, setExpandedRankings] = useState({});
 
   // Show debug info in production if API URL looks wrong
   useEffect(() => {
@@ -161,7 +162,8 @@ const LLMCouncil = () => {
                       rankings.push({
                         model: rankedModelInfo.name,
                         rank: idx + 1,
-                        reasoning: extractReasoning(review.ranking) || 'Ranked based on peer review'
+                        reasoning: extractReasoning(review.ranking) || 'Ranked based on peer review',
+                        fullRankingText: review.ranking || '' // Store full raw text for details
                       });
                     }
                   });
@@ -172,14 +174,16 @@ const LLMCouncil = () => {
                     rankings.push({
                       model: r.model,
                       rank: idx + 1,
-                      reasoning: 'Ranked based on peer review'
+                      reasoning: 'Ranked based on peer review',
+                      fullRankingText: review.ranking || ''
                     });
                   });
                 }
 
                 return {
                   reviewer: modelInfo.name,
-                  rankings: rankings
+                  rankings: rankings,
+                  fullRawRanking: review.ranking || '' // Store full raw ranking for the whole review
                 };
               });
               console.log('Formatted reviews:', formattedReviews);
@@ -330,7 +334,8 @@ const LLMCouncil = () => {
                 rankings.push({
                   model: rankedModelInfo.name,
                   rank: idx + 1,
-                  reasoning: extractReasoning(review.ranking) || 'Ranked based on peer review'
+                  reasoning: extractReasoning(review.ranking) || 'Ranked based on peer review',
+                  fullRankingText: review.ranking || ''
                 });
               }
             });
@@ -338,7 +343,8 @@ const LLMCouncil = () => {
           
           return {
             reviewer: modelInfo.name,
-            rankings: rankings
+            rankings: rankings,
+            fullRawRanking: review.ranking || '' // Store full raw ranking for details
           };
         });
         setStage2Data(formattedReviews);
@@ -597,6 +603,9 @@ const LLMCouncil = () => {
                       console.error('Invalid review at index', idx, review);
                       return null;
                     }
+                    const reviewKey = `${idx}`;
+                    const isExpanded = expandedRankings[reviewKey] || false;
+                    
                     return (
                       <div key={idx} className="review-card">
                         <h3 className="review-title">
@@ -604,23 +613,45 @@ const LLMCouncil = () => {
                         </h3>
                         <div className="rankings-list">
                           {review.rankings && Array.isArray(review.rankings) && review.rankings.length > 0 ? (
-                            review.rankings.map((rank, ridx) => {
-                              if (!rank || !rank.model) {
-                                console.error('Invalid rank at index', ridx, rank);
-                                return null;
-                              }
-                              return (
-                                <div key={ridx} className="ranking-item">
-                                  <span className="ranking-number">#{rank.rank || ridx + 1}</span>
-                                  <div className="ranking-content">
-                                    <span className="ranking-model">{rank.model}</span>
-                                    <span className="ranking-reasoning">
-                                      <InlineMarkdown text={`— ${rank.reasoning || 'No reasoning provided'}`} />
-                                    </span>
+                            <>
+                              {review.rankings.map((rank, ridx) => {
+                                if (!rank || !rank.model) {
+                                  console.error('Invalid rank at index', ridx, rank);
+                                  return null;
+                                }
+                                return (
+                                  <div key={ridx} className="ranking-item-compact">
+                                    <div className="ranking-header">
+                                      <span className="ranking-badge">#{rank.rank || ridx + 1}</span>
+                                      <span className="ranking-model-name">{rank.model}</span>
+                                    </div>
                                   </div>
+                                );
+                              })}
+                              {review.rankings.some(rank => rank.reasoning && rank.reasoning.length > 50) && (
+                                <button
+                                  className="toggle-details-btn"
+                                  onClick={() => setExpandedRankings({
+                                    ...expandedRankings,
+                                    [reviewKey]: !isExpanded
+                                  })}
+                                >
+                                  {isExpanded ? '▼ Hide Details' : '▶ Show Details'}
+                                </button>
+                              )}
+                              {isExpanded && (
+                                <div className="ranking-details">
+                                  {/* Show the full raw ranking text from the reviewer */}
+                                  {review.fullRawRanking && (
+                                    <div className="ranking-detail-item full-raw-ranking">
+                                      <div className="ranking-reasoning-full">
+                                        <InlineMarkdown text={review.fullRawRanking} />
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              );
-                            })
+                              )}
+                            </>
                           ) : (
                             <div className="ranking-item">No rankings available</div>
                           )}
