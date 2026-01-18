@@ -590,6 +590,17 @@ const LLMCouncil = () => {
               <h2 className="stage-title">Stage 2: Peer Review</h2>
             </div>
 
+            {/* Insight: Top Model */}
+            {stage2Metadata?.aggregate_rankings && stage2Metadata.aggregate_rankings.length > 0 && (
+              <div className="stage2-insight">
+                <div className="insight-icon">🏆</div>
+                <div className="insight-content">
+                  <strong>Top Model:</strong> {stage2Metadata.aggregate_rankings[0].model.split('/')[1] || stage2Metadata.aggregate_rankings[0].model}
+                  <span className="insight-subtitle">Based on peer evaluations</span>
+                </div>
+              </div>
+            )}
+
             {loading && !reviews.length ? (
               <div className="loading-state">
                 <Loader2 className="spinner" />

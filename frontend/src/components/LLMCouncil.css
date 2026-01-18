@@ -243,6 +243,41 @@
   font-weight: bold;
 }
 
+.stage2-insight {
+  background: linear-gradient(to right, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.2));
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.insight-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.insight-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.insight-content strong {
+  color: #f1f5f9;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.insight-subtitle {
+  color: #cbd5e1;
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
 .loading-state {
   display: flex;
   align-items: center;
