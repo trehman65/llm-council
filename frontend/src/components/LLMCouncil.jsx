@@ -239,6 +239,26 @@ const LLMCouncil = () => {
     }
   };
 
+  const handleNavigateToStage = (targetStage) => {
+    // Helper to check if we can navigate to a stage
+    const canNavigateTo = (target) => {
+      switch (target) {
+        case 'stage1':
+          return stage1Data !== null;
+        case 'stage2':
+          return stage2Data !== null;
+        case 'stage3':
+          return stage3Data !== null;
+        default:
+          return true;
+      }
+    };
+
+    if (canNavigateTo(targetStage)) {
+      setStage(targetStage);
+    }
+  };
+
   const reset = () => {
     setQuestion('');
     setStage('input');
@@ -346,6 +366,33 @@ const LLMCouncil = () => {
 
         {stage === 'stage1' && (
           <div className="council-card">
+            <div className="stage-navigation">
+              <div className="stage-nav-item active">
+                <MessageSquare className="stage-nav-icon" />
+                <span>Stage 1: Initial Opinions</span>
+              </div>
+              {stage2Data && (
+                <button
+                  onClick={() => handleNavigateToStage('stage2')}
+                  className="stage-nav-item clickable"
+                  title="Go to Stage 2: Peer Review"
+                >
+                  <Trophy className="stage-nav-icon" />
+                  <span>Stage 2: Peer Review</span>
+                </button>
+              )}
+              {stage3Data && (
+                <button
+                  onClick={() => handleNavigateToStage('stage3')}
+                  className="stage-nav-item clickable"
+                  title="Go to Stage 3: Final Answer"
+                >
+                  <Trophy className="stage-nav-icon" />
+                  <span>Stage 3: Final Answer</span>
+                </button>
+              )}
+            </div>
+
             <div className="stage-header">
               <MessageSquare className="stage-icon" />
               <h2 className="stage-title">Stage 1: Initial Opinions</h2>
@@ -402,6 +449,31 @@ const LLMCouncil = () => {
 
         {stage === 'stage2' && (
           <div className="council-card">
+            <div className="stage-navigation">
+              <button
+                onClick={() => handleNavigateToStage('stage1')}
+                className="stage-nav-item clickable"
+                title="Go to Stage 1: Initial Opinions"
+              >
+                <MessageSquare className="stage-nav-icon" />
+                <span>Stage 1: Initial Opinions</span>
+              </button>
+              <div className="stage-nav-item active">
+                <Trophy className="stage-nav-icon" />
+                <span>Stage 2: Peer Review</span>
+              </div>
+              {stage3Data && (
+                <button
+                  onClick={() => handleNavigateToStage('stage3')}
+                  className="stage-nav-item clickable"
+                  title="Go to Stage 3: Final Answer"
+                >
+                  <Trophy className="stage-nav-icon" />
+                  <span>Stage 3: Final Answer</span>
+                </button>
+              )}
+            </div>
+
             <div className="stage-header">
               <Trophy className="stage-icon" />
               <h2 className="stage-title">Stage 2: Peer Review</h2>
@@ -484,6 +556,31 @@ const LLMCouncil = () => {
 
         {stage === 'stage3' && (
           <div className="council-card">
+            <div className="stage-navigation">
+              <button
+                onClick={() => handleNavigateToStage('stage1')}
+                className="stage-nav-item clickable"
+                title="Go to Stage 1: Initial Opinions"
+              >
+                <MessageSquare className="stage-nav-icon" />
+                <span>Stage 1: Initial Opinions</span>
+              </button>
+              {stage2Data && (
+                <button
+                  onClick={() => handleNavigateToStage('stage2')}
+                  className="stage-nav-item clickable"
+                  title="Go to Stage 2: Peer Review"
+                >
+                  <Trophy className="stage-nav-icon" />
+                  <span>Stage 2: Peer Review</span>
+                </button>
+              )}
+              <div className="stage-nav-item active">
+                <Trophy className="stage-nav-icon" />
+                <span>Stage 3: Final Answer</span>
+              </div>
+            </div>
+
             <div className="stage-header">
               <Trophy className="stage-icon final" />
               <h2 className="stage-title">Final Council Decision</h2>
