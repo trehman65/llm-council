@@ -240,11 +240,60 @@
   background: linear-gradient(to right, #9333ea, #db2777);
 }
 
+/* Toggle button - visible when sidebar is closed (both mobile and desktop) */
+.mobile-history-toggle {
+  display: flex;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 999;
+  background: linear-gradient(to right, #a855f7, #ec4899);
+  border: none;
+  border-radius: 0.5rem;
+  width: 3rem;
+  height: 3rem;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-history-toggle:hover {
+  background: linear-gradient(to right, #9333ea, #db2777);
+  transform: scale(1.05);
+}
+
+.mobile-history-toggle .history-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
+}
+
+/* Overlay for mobile when sidebar is open */
+.conversation-history-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  backdrop-filter: blur(2px);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
+  .conversation-history-overlay {
+    display: block;
+  }
+
   .conversation-history {
     width: 100%;
     max-width: 320px;
+    z-index: 1000;
   }
   
   .conversation-history.open {

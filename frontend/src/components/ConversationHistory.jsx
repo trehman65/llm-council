@@ -9,6 +9,28 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
   const [error, setError] = useState(null);
   const [isOpen, setIsOpen] = useState(true);
 
+  // Close sidebar on mobile by default, open on desktop
+  // On desktop, user can still close it and reopen via toggle button
+  useEffect(() => {
+    const checkMobile = () => {
+      if (window.innerWidth <= 768) {
+        setIsOpen(false);
+      } else {
+        // On desktop, maintain current state but default to open if not set
+        if (isOpen === undefined) {
+          setIsOpen(true);
+        }
+      }
+    };
+    
+    // Only set initial state, don't override user's choice on resize
+    if (window.innerWidth <= 768) {
+      setIsOpen(false);
+    } else {
+      setIsOpen(true);
+    }
+  }, []);
+
   // Load conversations on mount
   useEffect(() => {
     loadConversations();
@@ -74,6 +96,10 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
     try {
       const conversation = await api.getConversation(conversationId);
       onSelectConversation(conversation);
+      // Close sidebar on mobile after selection
+      if (window.innerWidth <= 768) {
+        setIsOpen(false);
+      }
     } catch (err) {
       console.error('Error loading conversation:', err);
       setError('Failed to load conversation. Please try again.');
@@ -98,16 +124,41 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
   };
 
   return (
-    <div className={`conversation-history ${isOpen ? 'open' : 'closed'}`}>
-      <div className="conversation-history-header">
+    <>
+      {/* Mobile toggle button - always visible when sidebar is closed */}
+      {!isOpen && (
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="history-toggle"
-          title={isOpen ? 'Hide history' : 'Show history'}
+          onClick={() => setIsOpen(true)}
+          className="mobile-history-toggle"
+          title="Show conversations"
+          aria-label="Show conversations"
         >
           <MessageSquare className="history-icon" />
-          <span className="history-title">Conversations</span>
         </button>
+      )}
+
+      {/* Overlay when sidebar is open on mobile */}
+      {isOpen && (
+        <div 
+          className="conversation-history-overlay"
+          onClick={() => {
+            if (window.innerWidth <= 768) {
+              setIsOpen(false);
+            }
+          }}
+        />
+      )}
+
+      <div className={`conversation-history ${isOpen ? 'open' : 'closed'}`}>
+        <div className="conversation-history-header">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="history-toggle"
+            title={isOpen ? 'Hide history' : 'Show history'}
+          >
+            <MessageSquare className="history-icon" />
+            <span className="history-title">Conversations</span>
+          </button>
         {isOpen && (
           <button
             onClick={() => {
@@ -170,7 +221,8 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
