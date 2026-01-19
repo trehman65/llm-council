@@ -50,6 +50,8 @@ const LLMCouncil = () => {
   const [stage2Metadata, setStage2Metadata] = useState(null);
   const [showDebug, setShowDebug] = useState(false);
   const [expandedRankings, setExpandedRankings] = useState({});
+  const [notification, setNotification] = useState(null);
+  const stageRef = React.useRef(stage);
 
   // Show debug info in production if API URL looks wrong
   useEffect(() => {
@@ -189,7 +191,19 @@ const LLMCouncil = () => {
               console.log('Formatted reviews:', formattedReviews);
               setStage2Data(formattedReviews);
               setReviews(formattedReviews);
-              // Don't change stage - wait for user to click "Generate Final Answer"
+              
+              // Show notification if user is still on Stage 1
+              console.log('Stage 2 complete, current stage from ref:', stageRef.current);
+              if (stageRef.current === 'stage1') {
+                console.log('Setting Stage 2 notification');
+                setNotification({
+                  message: 'Stage 2: Peer Review complete!',
+                  stage: 'stage2',
+                  type: 'success'
+                });
+              } else {
+                console.log('Not showing notification - user is on stage:', stageRef.current);
+              }
             } else {
               console.error('Stage 2 data invalid:', event.data, event.metadata);
             }
@@ -204,7 +218,16 @@ const LLMCouncil = () => {
             if (event.data && event.data.response) {
               setStage3Data(event.data.response);
               setFinalAnswer(event.data.response);
-              // Don't change stage - wait for user to click button
+              
+              // Show notification if user is still on Stage 1 or Stage 2
+              if (stageRef.current === 'stage1' || stageRef.current === 'stage2') {
+                console.log('Setting Stage 3 notification');
+                setNotification({
+                  message: 'Stage 3: Final Answer ready!',
+                  stage: 'stage3',
+                  type: 'success'
+                });
+              }
             } else {
               setStage3Data('Error: Unable to generate final synthesis.');
               setFinalAnswer('Error: Unable to generate final synthesis.');
@@ -261,6 +284,10 @@ const LLMCouncil = () => {
 
     if (canNavigateTo(targetStage)) {
       setStage(targetStage);
+      // Clear notification when navigating to the notified stage
+      if (notification && notification.stage === targetStage) {
+        setNotification(null);
+      }
     }
   };
 
@@ -380,6 +407,30 @@ const LLMCouncil = () => {
     reset();
   };
 
+  // Handle notification click - navigate to next stage
+  const handleNotificationClick = (targetStage) => {
+    setNotification(null);
+    handleNavigateToStage(targetStage);
+    // Scroll to top of the stage content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Keep stageRef in sync with stage state
+  useEffect(() => {
+    stageRef.current = stage;
+  }, [stage]);
+
+  // Auto-dismiss notification after 10 seconds
+  useEffect(() => {
+    if (notification) {
+      console.log('Notification displayed:', notification);
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   // Get models from config (for display)
   const models = [
     { name: 'Claude Sonnet 4.5', id: 'claude', color: 'bg-orange-500' },
@@ -395,6 +446,33 @@ const LLMCouncil = () => {
         onNewConversation={handleNewConversation}
         currentConversationId={conversationId}
       />
+      
+      {/* Stage completion notification */}
+      {notification && (
+        <div 
+          className="stage-notification"
+          onClick={() => handleNotificationClick(notification.stage)}
+        >
+          <div className="notification-content">
+            <Trophy className="notification-icon" />
+            <div className="notification-text">
+              <div className="notification-title">{notification.message}</div>
+              <div className="notification-subtitle">Click to view</div>
+            </div>
+          </div>
+          <button 
+            className="notification-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              setNotification(null);
+            }}
+            aria-label="Close notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      
       <div className="llm-council-content">
         <div className="llm-council-header">
           <div className="header-title">
