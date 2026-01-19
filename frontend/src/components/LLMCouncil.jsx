@@ -257,6 +257,8 @@ const LLMCouncil = () => {
     if (stage2Data) {
       setStage('stage2');
       setSelectedTab(0);
+      // Scroll to top when moving to next stage
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -264,6 +266,8 @@ const LLMCouncil = () => {
     // User clicked "Generate Final Answer" - move to Stage 3
     if (stage3Data) {
       setStage('stage3');
+      // Scroll to top when moving to next stage
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -288,6 +292,8 @@ const LLMCouncil = () => {
       if (notification && notification.stage === targetStage) {
         setNotification(null);
       }
+      // Scroll to top when navigating to a different stage
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
