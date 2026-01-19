@@ -291,13 +291,84 @@
   }
 
   .conversation-history {
-    width: 100%;
+    width: 85%;
     max-width: 320px;
     z-index: 1000;
   }
   
   .conversation-history.open {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .conversation-history-header {
+    padding: var(--spacing-sm);
+  }
+
+  .history-toggle {
+    padding: var(--spacing-xs);
+    font-size: var(--text-sm);
+  }
+
+  .history-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .history-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  .new-conversation-button {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .icon-small {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .conversation-list {
+    padding: var(--spacing-xs);
+  }
+
+  .conversation-item {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .conversation-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .conversation-title {
+    font-size: var(--text-sm);
+    margin-bottom: 2px;
+    line-height: 1.4;
+  }
+
+  .conversation-meta {
+    font-size: var(--text-xs);
+    line-height: 1.4;
+  }
+
+  .conversation-loading,
+  .conversation-error,
+  .conversation-empty {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+
+  .spinner-small {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .start-button,
+  .retry-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
   }
 }
 
