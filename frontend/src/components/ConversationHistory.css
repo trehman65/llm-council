@@ -370,5 +370,110 @@
     padding: var(--spacing-sm) var(--spacing-md);
     font-size: var(--text-sm);
   }
+
+  .user-profile-section {
+    padding: var(--spacing-sm);
+  }
+
+  .user-avatar,
+  .user-avatar-fallback {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-name {
+    font-size: var(--text-sm);
+  }
+
+  .user-email {
+    font-size: var(--text-xs);
+  }
+
+  .logout-button {
+    padding: 6px;
+  }
+}
+
+/* ==================== User Profile Section ==================== */
+
+.user-profile-section {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-avatar-fallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+
+.user-avatar-fallback.hidden {
+  display: none;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
 }
 

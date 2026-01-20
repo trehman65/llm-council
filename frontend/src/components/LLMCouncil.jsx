@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
 import './LLMCouncil.css';
 
@@ -33,6 +35,10 @@ const InlineMarkdown = ({ text }) => {
 };
 
 const LLMCouncil = () => {
+  const { user, token, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const isGuest = !token;
+  
   const [question, setQuestion] = useState('');
   const [stage, setStage] = useState('input');
   const [responses, setResponses] = useState([]);
@@ -97,16 +103,8 @@ const LLMCouncil = () => {
     setStage3Data(null);
     setStage2Metadata(null);
 
-    try {
-      console.log('Creating conversation...');
-      // Create a new conversation
-      const conversation = await api.createConversation();
-      console.log('Conversation created:', conversation.id);
-      setConversationId(conversation.id);
-
-      // Send message with streaming - collect all data but don't auto-advance stages
-      console.log('Starting message stream...');
-      await api.sendMessageStream(conversation.id, question, (eventType, event) => {
+    // Event handler for stream events
+    const handleStreamEvent = (eventType, event) => {
         console.log('Stream event:', eventType, event);
         switch (eventType) {
           case 'stage1_start':
@@ -243,7 +241,23 @@ const LLMCouncil = () => {
             setLoading(false);
             break;
         }
-      });
+      };
+
+    try {
+      if (isGuest) {
+        // Guest mode: use guest endpoint (no conversation saved)
+        console.log('Guest mode: sending message...');
+        await api.sendGuestMessageStream(question, handleStreamEvent);
+      } else {
+        // Authenticated mode: create conversation and save history
+        console.log('Creating conversation...');
+        const conversation = await api.createConversation(token);
+        console.log('Conversation created:', conversation.id);
+        setConversationId(conversation.id);
+
+        console.log('Starting message stream...');
+        await api.sendMessageStream(conversation.id, question, token, handleStreamEvent);
+      }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setError(error.message || 'Failed to submit question to council. Please check your connection and try again.');
@@ -445,13 +459,40 @@ const LLMCouncil = () => {
     { name: 'Grok', id: 'grok', color: 'bg-purple-500' }
   ];
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="llm-council-container">
+        <div className="llm-council-content">
+          <div className="loading-state">
+            <Loader2 className="spinner" />
+            <span className="loading-text">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="llm-council-container">
-      <ConversationHistory
-        onSelectConversation={handleLoadConversation}
-        onNewConversation={handleNewConversation}
-        currentConversationId={conversationId}
-      />
+      {/* Guest mode header */}
+      {isGuest && (
+        <div className="guest-header">
+          <span className="guest-header-title">LLM Council</span>
+          <button className="guest-signin-btn" onClick={() => navigate('/login')}>
+            Sign in
+          </button>
+        </div>
+      )}
+      
+      {/* Show conversation history only for logged-in users */}
+      {!isGuest && (
+        <ConversationHistory
+          onSelectConversation={handleLoadConversation}
+          onNewConversation={handleNewConversation}
+          currentConversationId={conversationId}
+        />
+      )}
       
       {/* Stage completion notification */}
       {notification && (
@@ -556,6 +597,15 @@ const LLMCouncil = () => {
                 </>
               )}
             </button>
+            
+            {/* Subtle sign-in hint for guests */}
+            {isGuest && (
+              <div className="guest-signin-hint">
+                <span onClick={() => navigate('/login')} className="signin-link">
+                  Sign in to save your chat history →
+                </span>
+              </div>
+            )}
           </div>
         )}
 

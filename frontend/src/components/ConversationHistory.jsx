@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, Plus, Trash2, Loader2, User, LogOut } from 'lucide-react';
 import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import './ConversationHistory.css';
 
 const ConversationHistory = ({ onSelectConversation, onNewConversation, currentConversationId }) => {
+  const { user, token, logout } = useAuth();
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -73,7 +77,7 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
 
   const fetchConversations = async (background = false) => {
     try {
-      const data = await api.listConversations();
+      const data = await api.listConversations(token);
       setConversations(data);
       
       // Cache in localStorage
@@ -94,7 +98,7 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
 
   const handleSelectConversation = async (conversationId) => {
     try {
-      const conversation = await api.getConversation(conversationId);
+      const conversation = await api.getConversation(conversationId, token);
       onSelectConversation(conversation);
       // Close sidebar on mobile after selection
       if (window.innerWidth <= 768) {
@@ -104,6 +108,11 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
       console.error('Error loading conversation:', err);
       setError('Failed to load conversation. Please try again.');
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   const formatDate = (dateString) => {
@@ -219,6 +228,40 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
               </button>
             ))
           )}
+        </div>
+      )}
+
+      {/* User profile section at bottom */}
+      {isOpen && user && (
+        <div className="user-profile-section">
+          <div className="user-info">
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt={user.name || 'User'}
+                className="user-avatar"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`user-avatar-fallback ${user.picture ? 'hidden' : ''}`}>
+              <User size={20} />
+            </div>
+            <div className="user-details">
+              <span className="user-name">{user.name || 'User'}</span>
+              <span className="user-email">{user.email}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="logout-button"
+            title="Sign out"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       )}
       </div>
