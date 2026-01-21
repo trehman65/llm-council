@@ -1,14 +1,20 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: 'linear-gradient(to bottom right, #0f172a, #581c87, #0f172a)',
+        color: 'white'
+      }}>
+        <div>Loading...</div>
       </div>
     );
   }
@@ -19,6 +25,3 @@ function ProtectedRoute({ children }) {
 
   return children;
 }
-
-export default ProtectedRoute;
-

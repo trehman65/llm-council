@@ -256,7 +256,7 @@ const LLMCouncil = () => {
         setConversationId(conversation.id);
 
         console.log('Starting message stream...');
-        await api.sendMessageStream(conversation.id, question, token, handleStreamEvent);
+        await api.sendMessageStream(conversation.id, question, handleStreamEvent, token);
       }
     } catch (error) {
       console.error('Error in handleSubmit:', error);

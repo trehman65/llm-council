@@ -39,10 +39,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const handleCallback = (newToken) => {
+  const handleCallback = async (newToken) => {
     localStorage.setItem('authToken', newToken);
     setToken(newToken);
-    checkAuth();
+    await checkAuth();
+    return Promise.resolve();
   };
 
   const logout = async () => {
@@ -73,4 +74,3 @@ export function useAuth() {
   }
   return context;
 }
-
