@@ -49,7 +49,6 @@ Since Render's Blueprint doesn't support static sites well, deploy the frontend 
    - **Environment Variables**:
      - `VITE_API_BASE_URL`: Your backend URL from Step 1 (e.g., `https://llm-council-backend.onrender.com`)
        - **Important**: This must be set BEFORE building, as Vite needs it at build time
-   - **Note**: The `_redirects` file in `frontend/public/` ensures client-side routing works correctly (all routes serve `index.html`)
 
 3. **Deploy Frontend**
    - Click "Create Static Site"
@@ -139,12 +138,6 @@ Make sure to set:
 - Verify `VITE_API_BASE_URL` is set correctly in frontend
 - Check that backend service is running and healthy
 - Ensure backend URL doesn't have a trailing slash
-
-### 404 Error on Routes (e.g., `/auth/callback`)
-- This happens when the static site doesn't serve `index.html` for all routes
-- The `_redirects` file in `frontend/public/` should fix this
-- After adding `_redirects`, rebuild and redeploy the frontend
-- If still not working, verify the `_redirects` file is in `frontend/dist/` after build
 
 ## Post-Deployment
 

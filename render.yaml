@@ -7,24 +7,9 @@ services:
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENROUTER_API_KEY
-        sync: false  # Set your OpenRouter API key in Render Dashboard
+        sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
-      # Google OAuth Credentials (set these in Render Dashboard)
-      - key: GOOGLE_CLIENT_ID
-        sync: false  # Set your Google OAuth Client ID
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false  # Set your Google OAuth Client Secret
-      # Security & Session Configuration
-      - key: SECRET_KEY
-        sync: false  # Generate a secure random key (use: python -c "import secrets; print(secrets.token_urlsafe(32))")
-      - key: SESSION_COOKIE_SECURE
-        value: "true"  # Set to true for HTTPS in production
-      # URLs (update these after deployment with your actual URLs)
-      - key: OAUTH_REDIRECT_URI
-        sync: false  # Set to: https://your-backend.onrender.com/api/auth/callback
-      - key: FRONTEND_URL
-        sync: false  # Set to: https://your-frontend.onrender.com (after frontend deploys)
     healthCheckPath: /
     plan: free
 
