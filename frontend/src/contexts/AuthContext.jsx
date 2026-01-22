@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('authToken'));
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -60,8 +61,28 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const openLoginModal = () => setShowLoginModal(true);
+  const closeLoginModal = () => setShowLoginModal(false);
+
+  // Close modal when user successfully logs in
+  useEffect(() => {
+    if (user) {
+      setShowLoginModal(false);
+    }
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, handleCallback }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      login, 
+      logout, 
+      handleCallback,
+      showLoginModal,
+      openLoginModal,
+      closeLoginModal
+    }}>
       {children}
     </AuthContext.Provider>
   );

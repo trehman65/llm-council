@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
-export default function Login() {
+export default function Login({ onClose }) {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,9 +19,16 @@ export default function Login() {
     }
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="login-container">
-      <div className="login-card">
+    <div className="login-modal-overlay" onClick={handleOverlayClick}>
+      <div className="login-container">
+        <div className="login-card">
         <div className="login-header">
           <h1 className="login-title">LLM Council</h1>
           <p className="login-subtitle">
@@ -79,7 +86,17 @@ export default function Login() {
             By signing in, you agree to our Terms of Service and Privacy Policy
           </p>
         </div>
+        {onClose && (
+          <button 
+            className="login-close-button" 
+            onClick={onClose}
+            aria-label="Close login modal"
+          >
+            ×
+          </button>
+        )}
       </div>
+    </div>
     </div>
   );
 }

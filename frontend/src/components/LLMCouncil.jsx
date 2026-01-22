@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
@@ -35,8 +34,7 @@ const InlineMarkdown = ({ text }) => {
 };
 
 const LLMCouncil = () => {
-  const { user, token, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user, token, loading: authLoading, openLoginModal } = useAuth();
   const isGuest = !token;
   
   const [question, setQuestion] = useState('');
@@ -479,7 +477,7 @@ const LLMCouncil = () => {
       {isGuest && (
         <div className="guest-header">
           <span className="guest-header-title">LLM Council</span>
-          <button className="guest-signin-btn" onClick={() => navigate('/login')}>
+          <button className="guest-signin-btn" onClick={openLoginModal}>
             Sign in
           </button>
         </div>
@@ -601,7 +599,7 @@ const LLMCouncil = () => {
             {/* Subtle sign-in hint for guests */}
             {isGuest && (
               <div className="guest-signin-hint">
-                <span onClick={() => navigate('/login')} className="signin-link">
+                <span onClick={openLoginModal} className="signin-link">
                   Sign in to save your chat history →
                 </span>
               </div>
