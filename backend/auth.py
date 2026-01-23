@@ -93,7 +93,7 @@ def create_user(user_info: Dict[str, Any]) -> Dict[str, Any]:
     
     # Try MongoDB first, fall back to file storage
     collection = get_users_collection()
-    if collection:
+    if collection is not None:
         existing_user = collection.find_one({"id": user_id})
         if existing_user:
             user_data["created_at"] = existing_user.get("created_at", user_data["created_at"])
@@ -121,7 +121,7 @@ def get_user(user_id: str) -> Optional[Dict[str, Any]]:
     """Get a user by ID."""
     # Try MongoDB first, fall back to file storage
     collection = get_users_collection()
-    if collection:
+    if collection is not None:
         user = collection.find_one({"id": user_id})
         if user:
             user.pop("_id", None)  # Remove MongoDB _id field
@@ -160,7 +160,7 @@ def create_session(user_id: str, token: str) -> Dict[str, Any]:
     
     # Try MongoDB first, fall back to file storage
     collection = get_sessions_collection()
-    if collection:
+    if collection is not None:
         collection.update_one(
             {"token": token},
             {"$set": session_data},
@@ -179,7 +179,7 @@ def get_session(token: str) -> Optional[Dict[str, Any]]:
     """Get a session by token."""
     # Try MongoDB first, fall back to file storage
     collection = get_sessions_collection()
-    if collection:
+    if collection is not None:
         session = collection.find_one({"token": token})
         if session:
             session.pop("_id", None)  # Remove MongoDB _id field
@@ -209,7 +209,7 @@ def delete_session(token: str) -> bool:
     """Delete a session."""
     # Try MongoDB first, fall back to file storage
     collection = get_sessions_collection()
-    if collection:
+    if collection is not None:
         result = collection.delete_one({"token": token})
         return result.deleted_count > 0
     else:

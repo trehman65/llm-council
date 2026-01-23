@@ -40,7 +40,7 @@ def create_conversation(conversation_id: str, user_id: Optional[str] = None) -> 
 
     # Try MongoDB first, fall back to file storage
     collection = get_conversations_collection()
-    if collection:
+    if collection is not None:
         collection.insert_one(conversation)
     else:
         # File storage fallback
@@ -64,7 +64,7 @@ def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
     """
     # Try MongoDB first, fall back to file storage
     collection = get_conversations_collection()
-    if collection:
+    if collection is not None:
         result = collection.find_one({"id": conversation_id})
         if result:
             # Remove MongoDB _id field
@@ -89,7 +89,7 @@ def save_conversation(conversation: Dict[str, Any]):
     """
     # Try MongoDB first, fall back to file storage
     collection = get_conversations_collection()
-    if collection:
+    if collection is not None:
         collection.update_one(
             {"id": conversation["id"]},
             {"$set": conversation},
@@ -115,7 +115,7 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     # Try MongoDB first, fall back to file storage
     collection = get_conversations_collection()
-    if collection:
+    if collection is not None:
         query = {}
         if user_id is not None:
             query["user_id"] = user_id
