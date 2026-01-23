@@ -46,26 +46,34 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
       setLoading(true);
       setError(null);
       
+      // Clear old cache to ensure we get first_question field
       // Try localStorage cache first
       const cached = localStorage.getItem('llm_council_conversations');
       const cacheTime = localStorage.getItem('llm_council_conversations_time');
       
-      // Use cache if it's less than 5 minutes old
+      // Use cache if it's less than 1 minute old (reduced from 5 minutes to ensure fresh data)
       if (cached && cacheTime) {
         const age = Date.now() - parseInt(cacheTime, 10);
-        if (age < 5 * 60 * 1000) {
+        if (age < 1 * 60 * 1000) {
           try {
             const cachedConversations = JSON.parse(cached);
-            setConversations(cachedConversations);
-            setLoading(false);
-            // Still fetch in background to update cache
-            fetchConversations(true);
-            return;
+            // Check if cached data has first_question field, if not, fetch fresh
+            if (cachedConversations.length > 0 && cachedConversations[0].hasOwnProperty('first_question')) {
+              setConversations(cachedConversations);
+              setLoading(false);
+              // Still fetch in background to update cache
+              fetchConversations(true);
+              return;
+            }
           } catch (e) {
             // Cache invalid, fetch fresh
           }
         }
       }
+      
+      // Clear cache if it's outdated or missing first_question field
+      localStorage.removeItem('llm_council_conversations');
+      localStorage.removeItem('llm_council_conversations_time');
       
       await fetchConversations(false);
     } catch (err) {
@@ -78,6 +86,12 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
   const fetchConversations = async (background = false) => {
     try {
       const data = await api.listConversations(token);
+      
+      // Debug: Log first conversation to check for first_question field
+      if (import.meta.env.DEV && data.length > 0) {
+        console.log('First conversation data:', data[0]);
+      }
+      
       setConversations(data);
       
       // Cache in localStorage

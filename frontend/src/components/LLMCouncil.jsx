@@ -38,6 +38,7 @@ const LLMCouncil = () => {
   const isGuest = !token;
   
   const [question, setQuestion] = useState('');
+  const [currentQuestion, setCurrentQuestion] = useState(''); // The question being displayed for current conversation
   const [stage, setStage] = useState('input');
   const [responses, setResponses] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -91,6 +92,7 @@ const LLMCouncil = () => {
 
     setError(null);
     setLoading(true);
+    setCurrentQuestion(question.trim()); // Store the question being asked
     setStage('stage1');
     setResponses([]);
     setReviews([]);
@@ -311,6 +313,7 @@ const LLMCouncil = () => {
 
   const reset = () => {
     setQuestion('');
+    setCurrentQuestion('');
     setStage('input');
     setResponses([]);
     setReviews([]);
@@ -338,7 +341,9 @@ const LLMCouncil = () => {
       // Find the user question (last user message before this assistant message)
       const userMessages = conversation.messages.filter(msg => msg.role === 'user');
       if (userMessages.length > 0) {
-        setQuestion(userMessages[userMessages.length - 1].content);
+        const lastQuestion = userMessages[userMessages.length - 1].content;
+        setQuestion(lastQuestion);
+        setCurrentQuestion(lastQuestion); // Set current question for display
       }
       
       // Restore Stage 1 data
@@ -414,7 +419,9 @@ const LLMCouncil = () => {
       // No complete message, just show the question
       const userMessages = conversation.messages.filter(msg => msg.role === 'user');
       if (userMessages.length > 0) {
-        setQuestion(userMessages[userMessages.length - 1].content);
+        const lastQuestion = userMessages[userMessages.length - 1].content;
+        setQuestion(lastQuestion);
+        setCurrentQuestion(lastQuestion); // Set current question for display
         setStage('input');
       }
     }
@@ -609,6 +616,12 @@ const LLMCouncil = () => {
 
         {stage === 'stage1' && (
           <div className="council-card">
+            {currentQuestion && (
+              <div className="question-display">
+                <div className="question-label">Your Question:</div>
+                <div className="question-text">{currentQuestion}</div>
+              </div>
+            )}
             <div className="stage-navigation">
               <div className="stage-nav-item active">
                 <MessageSquare className="stage-nav-icon" />
@@ -692,6 +705,12 @@ const LLMCouncil = () => {
 
         {stage === 'stage2' && (
           <div className="council-card">
+            {currentQuestion && (
+              <div className="question-display">
+                <div className="question-label">Your Question:</div>
+                <div className="question-text">{currentQuestion}</div>
+              </div>
+            )}
             <div className="stage-navigation">
               <button
                 onClick={() => handleNavigateToStage('stage1')}
@@ -835,6 +854,12 @@ const LLMCouncil = () => {
 
         {stage === 'stage3' && (
           <div className="council-card">
+            {currentQuestion && (
+              <div className="question-display">
+                <div className="question-label">Your Question:</div>
+                <div className="question-text">{currentQuestion}</div>
+              </div>
+            )}
             <div className="stage-navigation">
               <button
                 onClick={() => handleNavigateToStage('stage1')}

@@ -122,11 +122,19 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         
         conversations = []
         for doc in collection.find(query, {"id": 1, "created_at": 1, "title": 1, "messages": 1}):
+            # Get first user message (the original question)
+            first_question = None
+            for msg in doc.get("messages", []):
+                if msg.get("role") == "user":
+                    first_question = msg.get("content", "")
+                    break
+            
             conversations.append({
                 "id": doc["id"],
                 "created_at": doc["created_at"],
                 "title": doc.get("title", "New Conversation"),
-                "message_count": len(doc.get("messages", []))
+                "message_count": len(doc.get("messages", [])),
+                "first_question": first_question
             })
         
         # Sort by creation time, newest first
@@ -147,13 +155,21 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
                         if data.get("user_id") != user_id:
                             continue
                     
-                    # Return metadata only
-                    conversations.append({
-                        "id": data["id"],
-                        "created_at": data["created_at"],
-                        "title": data.get("title", "New Conversation"),
-                        "message_count": len(data["messages"])
-                    })
+                # Get first user message (the original question)
+                first_question = None
+                for msg in data.get("messages", []):
+                    if msg.get("role") == "user":
+                        first_question = msg.get("content", "")
+                        break
+                
+                # Return metadata only
+                conversations.append({
+                    "id": data["id"],
+                    "created_at": data["created_at"],
+                    "title": data.get("title", "New Conversation"),
+                    "message_count": len(data["messages"]),
+                    "first_question": first_question
+                })
 
         # Sort by creation time, newest first
         conversations.sort(key=lambda x: x["created_at"], reverse=True)
