@@ -3,7 +3,9 @@
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse
-from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Dict, Any, Optional
 import uuid
 import json
@@ -42,14 +44,45 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+    expose_headers=[],
+    max_age=3600,
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses."""
+    async def dispatch(self, request: StarletteRequest, call_next):
+        response = await call_next(request)
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # HSTS - only in production (HTTPS)
+        if os.getenv("ENVIRONMENT") == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
-    content: str
+    content: str = Field(..., min_length=1, max_length=10000, description="Message content (1-10000 characters)")
+    
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        """Validate and sanitize message content."""
+        if not v or not v.strip():
+            raise ValueError("Message content cannot be empty")
+        # Strip whitespace but preserve internal formatting
+        content = v.strip()
+        if len(content) > 10000:
+            raise ValueError("Message content cannot exceed 10000 characters")
+        return content
 
 
 class ConversationMetadata(BaseModel):
@@ -88,7 +121,10 @@ async def login():
         auth_url, state = oauth_module.generate_authorization_url()
         return {"auth_url": auth_url, "state": state}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate authorization URL: {str(e)}")
+        # Log detailed error server-side but return generic message to client
+        import logging
+        logging.error(f"Failed to generate authorization URL: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to initiate login. Please try again later.")
 
 
 @app.get("/api/auth/callback")
@@ -105,6 +141,14 @@ async def auth_callback(code: str = None, state: str = None, error: str = None):
     if not code:
         return RedirectResponse(
             url=f"{FRONTEND_URL}/auth/callback?error=no_code"
+        )
+    
+    # Validate state parameter to prevent CSRF attacks
+    if not state or not oauth_module.validate_state(state):
+        import logging
+        logging.warning(f"Invalid or missing OAuth state parameter")
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}/auth/callback?error=invalid_state"
         )
     
     try:
@@ -129,16 +173,44 @@ async def auth_callback(code: str = None, state: str = None, error: str = None):
         # Create session
         auth.create_session(user["id"], jwt_token)
         
-        # Redirect to frontend with token
+        # Create temporary token for secure exchange (prevents token in URL)
+        temp_token = auth.create_temp_token(jwt_token)
+        
+        # Redirect to frontend with temporary token ID
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?token={jwt_token}"
+            url=f"{FRONTEND_URL}/auth/callback?temp_token={temp_token}"
         )
         
     except Exception as e:
-        error_msg = str(e).replace(" ", "+")
+        # Log detailed error server-side but return generic message to client
+        import logging
+        logging.error(f"OAuth callback error: {str(e)}", exc_info=True)
+        # Use generic error message to prevent information disclosure
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?error={error_msg}"
+            url=f"{FRONTEND_URL}/auth/callback?error=authentication_failed"
         )
+
+
+@app.post("/api/auth/exchange-token")
+async def exchange_token(request: Request):
+    """Exchange a temporary token for the real JWT token."""
+    try:
+        body = await request.json()
+        temp_token = body.get("temp_token")
+        
+        if not temp_token:
+            raise HTTPException(status_code=400, detail="temp_token is required")
+        
+        jwt_token = auth.exchange_temp_token(temp_token)
+        
+        if not jwt_token:
+            raise HTTPException(status_code=401, detail="Invalid or expired temporary token")
+        
+        return {"token": jwt_token}
+    except Exception as e:
+        import logging
+        logging.error(f"Token exchange error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Token exchange failed")
 
 
 @app.get("/api/auth/me")
@@ -148,8 +220,16 @@ async def get_current_user_info(current_user: Dict[str, Any] = Depends(auth.get_
 
 
 @app.post("/api/auth/logout")
-async def logout(current_user: Dict[str, Any] = Depends(auth.get_current_user)):
+async def logout(
+    request: Request,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
     """Logout the current user by invalidating their session."""
+    # Extract token from Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:]  # Remove "Bearer " prefix
+        auth.delete_session(token)
     return {"message": "Logged out successfully"}
 
 

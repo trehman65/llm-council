@@ -32,6 +32,49 @@ def get_session_file_path(session_id: str) -> str:
     return os.path.join(SESSIONS_DIR, f"{hashed}.json")
 
 
+# Temporary token storage for secure token exchange (one-time use, short expiration)
+_temp_tokens: Dict[str, Dict[str, Any]] = {}
+
+
+def create_temp_token(jwt_token: str) -> str:
+    """Create a temporary token for secure exchange."""
+    import secrets
+    temp_token = secrets.token_urlsafe(32)
+    _temp_tokens[temp_token] = {
+        "jwt_token": jwt_token,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(minutes=5)  # 5 minute expiration
+    }
+    return temp_token
+
+
+def exchange_temp_token(temp_token: str) -> Optional[str]:
+    """Exchange a temporary token for the real JWT token. Returns None if invalid."""
+    if not temp_token or temp_token not in _temp_tokens:
+        return None
+    
+    token_data = _temp_tokens[temp_token]
+    
+    # Check expiration
+    if datetime.utcnow() > token_data["expires_at"]:
+        del _temp_tokens[temp_token]
+        return None
+    
+    # Get the JWT token and delete the temp token (one-time use)
+    jwt_token = token_data["jwt_token"]
+    del _temp_tokens[temp_token]
+    
+    return jwt_token
+
+
+def _cleanup_expired_temp_tokens():
+    """Clean up expired temporary tokens."""
+    now = datetime.utcnow()
+    expired = [token for token, data in _temp_tokens.items() if now > data["expires_at"]]
+    for token in expired:
+        del _temp_tokens[token]
+
+
 def create_user(user_info: Dict[str, Any]) -> Dict[str, Any]:
     """Create or update a user from Google OAuth info."""
     user_id = user_info.get("sub") or user_info.get("id")

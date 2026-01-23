@@ -8,7 +8,7 @@ export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { handleCallback } = useAuth();
-  const token = searchParams.get('token');
+  const tempToken = searchParams.get('temp_token');
   const error = searchParams.get('error');
 
   useEffect(() => {
@@ -32,14 +32,32 @@ export default function AuthCallback() {
       return;
     }
 
-    if (token) {
-      // Handle the auth callback
-      handleCallback(token)
+    if (tempToken) {
+      // Exchange temporary token for real JWT token
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      fetch(`${API_BASE}/api/auth/exchange-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ temp_token: tempToken }),
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Token exchange failed');
+          }
+          const data = await response.json();
+          return data.token;
+        })
+        .then((token) => {
+          // Handle the auth callback with the real token
+          return handleCallback(token);
+        })
         .then(() => {
           if (isPopup) {
-            // Send success message to parent window
+            // Send success message to parent window (without token for security)
             window.opener.postMessage(
-              { type: 'OAUTH_SUCCESS', token },
+              { type: 'OAUTH_SUCCESS' },
               window.location.origin
             );
             window.close();
@@ -49,7 +67,9 @@ export default function AuthCallback() {
           }
         })
         .catch((err) => {
-          console.error('Auth callback error:', err);
+          if (import.meta.env.DEV) {
+            console.error('Auth callback error:', err);
+          }
           if (isPopup) {
             window.opener.postMessage(
               { type: 'OAUTH_ERROR', error: 'authentication_failed' },
@@ -61,7 +81,7 @@ export default function AuthCallback() {
           }
         });
     } else {
-      // No token
+      // No temp token
       if (isPopup) {
         window.opener.postMessage(
           { type: 'OAUTH_ERROR', error: 'missing_token' },
@@ -72,7 +92,7 @@ export default function AuthCallback() {
         navigate('/login?error=missing_token');
       }
     }
-  }, [token, error, handleCallback, navigate]);
+  }, [tempToken, error, handleCallback, navigate]);
 
   return (
     <div className="auth-callback-container">
