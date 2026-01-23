@@ -30,16 +30,13 @@ export default function Login({ onClose }) {
       <div className="login-container">
         <div className="login-card">
         <div className="login-header">
-          <h1 className="login-title">LLM Council</h1>
+          <h1 className="login-title">Sign in to save your chat history</h1>
           <p className="login-subtitle">
             Multiple AI models debate to answer your hardest questions
           </p>
         </div>
 
         <div className="login-content">
-          <p className="login-description">
-            Sign in with Google to access the LLM Council and get AI-powered insights from multiple models.
-          </p>
 
           {error && (
             <div className="login-error">
