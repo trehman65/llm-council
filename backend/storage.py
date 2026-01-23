@@ -1,4 +1,4 @@
-"""JSON-based storage for conversations."""
+"""Storage for conversations - supports both MongoDB and file-based storage."""
 
 import json
 import os
@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from .config import DATA_DIR
+from .database import get_conversations_collection
 
 
 def ensure_data_dir():
@@ -29,8 +30,6 @@ def create_conversation(conversation_id: str, user_id: Optional[str] = None) -> 
     Returns:
         New conversation dict
     """
-    ensure_data_dir()
-
     conversation = {
         "id": conversation_id,
         "created_at": datetime.utcnow().isoformat(),
@@ -39,10 +38,16 @@ def create_conversation(conversation_id: str, user_id: Optional[str] = None) -> 
         "user_id": user_id,
     }
 
-    # Save to file
-    path = get_conversation_path(conversation_id)
-    with open(path, 'w') as f:
-        json.dump(conversation, f, indent=2)
+    # Try MongoDB first, fall back to file storage
+    collection = get_conversations_collection()
+    if collection:
+        collection.insert_one(conversation)
+    else:
+        # File storage fallback
+        ensure_data_dir()
+        path = get_conversation_path(conversation_id)
+        with open(path, 'w') as f:
+            json.dump(conversation, f, indent=2)
 
     return conversation
 
@@ -57,13 +62,22 @@ def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
     Returns:
         Conversation dict or None if not found
     """
-    path = get_conversation_path(conversation_id)
-
-    if not os.path.exists(path):
+    # Try MongoDB first, fall back to file storage
+    collection = get_conversations_collection()
+    if collection:
+        result = collection.find_one({"id": conversation_id})
+        if result:
+            # Remove MongoDB _id field
+            result.pop("_id", None)
+            return result
         return None
-
-    with open(path, 'r') as f:
-        return json.load(f)
+    else:
+        # File storage fallback
+        path = get_conversation_path(conversation_id)
+        if not os.path.exists(path):
+            return None
+        with open(path, 'r') as f:
+            return json.load(f)
 
 
 def save_conversation(conversation: Dict[str, Any]):
@@ -73,11 +87,20 @@ def save_conversation(conversation: Dict[str, Any]):
     Args:
         conversation: Conversation dict to save
     """
-    ensure_data_dir()
-
-    path = get_conversation_path(conversation['id'])
-    with open(path, 'w') as f:
-        json.dump(conversation, f, indent=2)
+    # Try MongoDB first, fall back to file storage
+    collection = get_conversations_collection()
+    if collection:
+        collection.update_one(
+            {"id": conversation["id"]},
+            {"$set": conversation},
+            upsert=True
+        )
+    else:
+        # File storage fallback
+        ensure_data_dir()
+        path = get_conversation_path(conversation['id'])
+        with open(path, 'w') as f:
+            json.dump(conversation, f, indent=2)
 
 
 def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -90,32 +113,51 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     Returns:
         List of conversation metadata dicts
     """
-    ensure_data_dir()
+    # Try MongoDB first, fall back to file storage
+    collection = get_conversations_collection()
+    if collection:
+        query = {}
+        if user_id is not None:
+            query["user_id"] = user_id
+        
+        conversations = []
+        for doc in collection.find(query, {"id": 1, "created_at": 1, "title": 1, "messages": 1}):
+            conversations.append({
+                "id": doc["id"],
+                "created_at": doc["created_at"],
+                "title": doc.get("title", "New Conversation"),
+                "message_count": len(doc.get("messages", []))
+            })
+        
+        # Sort by creation time, newest first
+        conversations.sort(key=lambda x: x["created_at"], reverse=True)
+        return conversations
+    else:
+        # File storage fallback
+        ensure_data_dir()
+        conversations = []
+        for filename in os.listdir(DATA_DIR):
+            if filename.endswith('.json'):
+                path = os.path.join(DATA_DIR, filename)
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    
+                    # Filter by user_id if provided
+                    if user_id is not None:
+                        if data.get("user_id") != user_id:
+                            continue
+                    
+                    # Return metadata only
+                    conversations.append({
+                        "id": data["id"],
+                        "created_at": data["created_at"],
+                        "title": data.get("title", "New Conversation"),
+                        "message_count": len(data["messages"])
+                    })
 
-    conversations = []
-    for filename in os.listdir(DATA_DIR):
-        if filename.endswith('.json'):
-            path = os.path.join(DATA_DIR, filename)
-            with open(path, 'r') as f:
-                data = json.load(f)
-                
-                # Filter by user_id if provided
-                if user_id is not None:
-                    if data.get("user_id") != user_id:
-                        continue
-                
-                # Return metadata only
-                conversations.append({
-                    "id": data["id"],
-                    "created_at": data["created_at"],
-                    "title": data.get("title", "New Conversation"),
-                    "message_count": len(data["messages"])
-                })
-
-    # Sort by creation time, newest first
-    conversations.sort(key=lambda x: x["created_at"], reverse=True)
-
-    return conversations
+        # Sort by creation time, newest first
+        conversations.sort(key=lambda x: x["created_at"], reverse=True)
+        return conversations
 
 
 def add_user_message(conversation_id: str, content: str):

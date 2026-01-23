@@ -11,6 +11,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 
 from .config import SECRET_KEY, TOKEN_EXPIRATION_HOURS, USERS_DIR, SESSIONS_DIR
+from .database import get_users_collection, get_sessions_collection
 
 # Ensure directories exist
 os.makedirs(USERS_DIR, exist_ok=True)
@@ -90,27 +91,49 @@ def create_user(user_info: Dict[str, Any]) -> Dict[str, Any]:
         "last_login": datetime.utcnow().isoformat(),
     }
     
-    # Check if user already exists
-    file_path = get_user_file_path(user_id)
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            existing_user = json.load(f)
+    # Try MongoDB first, fall back to file storage
+    collection = get_users_collection()
+    if collection:
+        existing_user = collection.find_one({"id": user_id})
+        if existing_user:
             user_data["created_at"] = existing_user.get("created_at", user_data["created_at"])
-    
-    # Save user data
-    with open(file_path, 'w') as f:
-        json.dump(user_data, f, indent=2)
+        collection.update_one(
+            {"id": user_id},
+            {"$set": user_data},
+            upsert=True
+        )
+    else:
+        # File storage fallback
+        file_path = get_user_file_path(user_id)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                existing_user = json.load(f)
+                user_data["created_at"] = existing_user.get("created_at", user_data["created_at"])
+        
+        # Save user data
+        with open(file_path, 'w') as f:
+            json.dump(user_data, f, indent=2)
     
     return user_data
 
 
 def get_user(user_id: str) -> Optional[Dict[str, Any]]:
     """Get a user by ID."""
-    file_path = get_user_file_path(user_id)
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    return None
+    # Try MongoDB first, fall back to file storage
+    collection = get_users_collection()
+    if collection:
+        user = collection.find_one({"id": user_id})
+        if user:
+            user.pop("_id", None)  # Remove MongoDB _id field
+            return user
+        return None
+    else:
+        # File storage fallback
+        file_path = get_user_file_path(user_id)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                return json.load(f)
+        return None
 
 
 def create_access_token(user_id: str, user_email: str) -> str:
@@ -135,35 +158,67 @@ def create_session(user_id: str, token: str) -> Dict[str, Any]:
         "expires_at": (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRATION_HOURS)).isoformat(),
     }
     
-    file_path = get_session_file_path(token)
-    with open(file_path, 'w') as f:
-        json.dump(session_data, f, indent=2)
+    # Try MongoDB first, fall back to file storage
+    collection = get_sessions_collection()
+    if collection:
+        collection.update_one(
+            {"token": token},
+            {"$set": session_data},
+            upsert=True
+        )
+    else:
+        # File storage fallback
+        file_path = get_session_file_path(token)
+        with open(file_path, 'w') as f:
+            json.dump(session_data, f, indent=2)
     
     return session_data
 
 
 def get_session(token: str) -> Optional[Dict[str, Any]]:
     """Get a session by token."""
-    file_path = get_session_file_path(token)
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            session = json.load(f)
+    # Try MongoDB first, fall back to file storage
+    collection = get_sessions_collection()
+    if collection:
+        session = collection.find_one({"token": token})
+        if session:
+            session.pop("_id", None)  # Remove MongoDB _id field
             # Check if session is expired
             expires_at = datetime.fromisoformat(session["expires_at"])
             if datetime.utcnow() > expires_at:
                 delete_session(token)
                 return None
             return session
-    return None
+        return None
+    else:
+        # File storage fallback
+        file_path = get_session_file_path(token)
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                session = json.load(f)
+                # Check if session is expired
+                expires_at = datetime.fromisoformat(session["expires_at"])
+                if datetime.utcnow() > expires_at:
+                    delete_session(token)
+                    return None
+                return session
+        return None
 
 
 def delete_session(token: str) -> bool:
     """Delete a session."""
-    file_path = get_session_file_path(token)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        return True
-    return False
+    # Try MongoDB first, fall back to file storage
+    collection = get_sessions_collection()
+    if collection:
+        result = collection.delete_one({"token": token})
+        return result.deleted_count > 0
+    else:
+        # File storage fallback
+        file_path = get_session_file_path(token)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False
 
 
 def verify_token(token: str) -> Optional[Dict[str, Any]]:

@@ -109,12 +109,29 @@ Since Render's Blueprint doesn't support static sites well, deploy the frontend 
 
 ### Data Persistence
 
-- The current implementation stores conversations in JSON files in the `data/` directory
-- On Render's free tier, this data is **ephemeral** and will be lost on redeploy
-- For production, consider:
-  - Using Render's PostgreSQL database (paid)
-  - Using an external database (MongoDB Atlas, Supabase, etc.)
-  - Using object storage (AWS S3, Cloudflare R2, etc.)
+**IMPORTANT**: Render's filesystem is ephemeral - data is lost on every deployment!
+
+**Solution**: Use MongoDB Atlas (FREE tier) for persistent storage:
+
+1. **Create MongoDB Atlas Account** (Free):
+   - Go to https://www.mongodb.com/cloud/atlas/register
+   - Create free M0 cluster
+   - Create database user with **strong password** (save credentials)
+   - **Network Access**: 
+     - For beta: Whitelist `0.0.0.0/0` (⚠️ insecure but convenient - see MONGODB_SECURITY.md)
+     - For production: Whitelist Render's IP ranges or use Private Endpoint
+   - Get connection string: "Connect" → "Connect your application"
+
+2. **Add to Render Environment Variables**:
+   - `MONGODB_URI`: Your MongoDB connection string (e.g., `mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority`)
+   - `USE_DATABASE`: `true`
+   - `DB_NAME`: `llm_council` (optional, defaults to this)
+
+3. **Deploy**: Your data will now persist across deployments! 🎉
+
+**Local Development**: 
+- Works without MongoDB (uses file storage)
+- Set `USE_DATABASE=true` and `MONGODB_URI` to use database locally too
 
 ### Environment Variables
 
@@ -122,6 +139,8 @@ Make sure to set:
 - `OPENROUTER_API_KEY` in the backend service
 - `VITE_API_BASE_URL` in the frontend service (should be the backend URL)
 - `FRONTEND_URL` in the backend service (should be the frontend URL)
+- `MONGODB_URI` in the backend service (for data persistence - see Data Persistence section)
+- `USE_DATABASE` set to `true` in the backend service (enables MongoDB)
 
 ## Troubleshooting
 

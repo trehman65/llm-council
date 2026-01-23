@@ -47,3 +47,12 @@ TOKEN_EXPIRATION_HOURS = 24
 # User data directory
 USERS_DIR = "data/users"
 SESSIONS_DIR = "data/users/sessions"
+
+# ==================== Database Configuration ====================
+
+# MongoDB connection string (for persistent storage on Render)
+MONGODB_URI = os.getenv("MONGODB_URI")
+USE_DATABASE = os.getenv("USE_DATABASE", "false").lower() == "true"
+
+# Database name
+DB_NAME = os.getenv("DB_NAME", "llm_council")
