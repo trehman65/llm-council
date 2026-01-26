@@ -410,7 +410,7 @@ const SecondOrderAnalyzer = () => {
               <textarea
                 value={problem}
                 onChange={(e) => setProblem(e.target.value)}
-                placeholder="Describe the problem you're trying to solve. Be specific about user pain points, business objectives, or market conditions."
+                placeholder="Describe the problem you're trying to solve..."
                 className="question-input"
                 rows={6}
                 disabled={loading}
@@ -422,7 +422,7 @@ const SecondOrderAnalyzer = () => {
               <textarea
                 value={solution}
                 onChange={(e) => setSolution(e.target.value)}
-                placeholder="Describe your proposed solution or product decision. Include key features, changes, or interventions you plan to implement."
+                placeholder="Describe your proposed solution or product decision..."
                 className="question-input"
                 rows={6}
                 disabled={loading}
@@ -446,6 +446,40 @@ const SecondOrderAnalyzer = () => {
                 </>
               )}
             </button>
+
+            {/* Recommended Examples - Always visible below CTA */}
+            <div className="recommended-chips-container">
+              <span className="chips-label">Try:</span>
+              <div className="recommended-chips">
+                {[
+                  {
+                    problem: "Users complain about 5-second page load times, causing 30% bounce rate on mobile",
+                    solution: "Implement aggressive caching, CDN, and lazy loading to reduce load times to under 2 seconds"
+                  },
+                  {
+                    problem: "Freemium conversion rate stuck at 2% despite 50K free users, need to hit 5% to be profitable",
+                    solution: "Add paywall after 10 document exports and limit free tier to 5 projects instead of unlimited"
+                  },
+                  {
+                    problem: "Competitors launched AI features and we're losing enterprise deals, sales team reports 40% of lost deals mention AI",
+                    solution: "Build AI-powered auto-complete feature that learns from user patterns and suggests next actions"
+                  }
+                ].map((example, index) => (
+                  <button
+                    key={index}
+                    className="recommended-chip"
+                    onClick={() => {
+                      setProblem(example.problem);
+                      setSolution(example.solution);
+                    }}
+                    disabled={loading}
+                    type="button"
+                  >
+                    <span className="chip-label">Problem:</span> {example.problem} → <span className="chip-label">Solution:</span> {example.solution}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

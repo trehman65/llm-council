@@ -585,7 +585,7 @@ const LLMCouncil = () => {
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="What question should the AI council debate? (e.g., 'What are the most important factors to consider when choosing a career path?')"
+                placeholder="What question should the AI council debate?"
                 className="question-input"
                 disabled={loading}
               />
@@ -620,6 +620,28 @@ const LLMCouncil = () => {
                 </>
               )}
             </button>
+
+            {/* Recommended Questions - Compact chips below CTA */}
+            <div className="recommended-chips-container">
+              <span className="chips-label">Try:</span>
+              <div className="recommended-chips">
+                {[
+                  "Should we build AI-powered search or improve our existing filters?",
+                  "Is it better to launch a freemium tier or keep our paid-only model?",
+                  "Should we prioritize mobile app development or enhance our web platform?"
+                ].map((exampleQuestion, index) => (
+                  <button
+                    key={index}
+                    className="recommended-chip"
+                    onClick={() => setQuestion(exampleQuestion)}
+                    disabled={loading}
+                    type="button"
+                  >
+                    {exampleQuestion}
+                  </button>
+                ))}
+              </div>
+            </div>
             
             {/* Subtle sign-in hint for guests */}
             {isGuest && (
