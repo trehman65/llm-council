@@ -351,7 +351,7 @@ const SecondOrderAnalyzer = () => {
         />
       )}
 
-      <div className="second-order-content">
+      <div className={`second-order-content ${isGuest ? 'guest-mode' : ''}`}>
         {/* Stage completion notification */}
         {notification && (
           <div 

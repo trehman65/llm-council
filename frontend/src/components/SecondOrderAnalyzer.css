@@ -18,6 +18,14 @@
   margin-right: auto;
 }
 
+.second-order-content.guest-mode {
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: calc(var(--spacing-lg) + 4.5rem); /* Extra padding for fixed guest header */
+  width: 100%;
+  max-width: 72rem;
+}
+
 @media (max-width: 768px) {
   .second-order-content {
     margin-left: 0;
@@ -26,7 +34,8 @@
 }
 
 .second-order-header {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  margin-top: var(--spacing-md);
   padding: var(--spacing-md) 0;
   position: relative;
   display: flex;
