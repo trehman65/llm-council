@@ -27,16 +27,15 @@
 }
 
 .llm-council-header {
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md) 0;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .back-to-home-button-header {
-  position: absolute;
-  left: var(--spacing-lg);
-  top: var(--spacing-xl);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -48,6 +47,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 0.9rem;
+  flex-shrink: 0;
 }
 
 .back-to-home-button-header:hover {
@@ -59,64 +59,55 @@
 .header-title {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
+  flex: 1;
 }
 
 .header-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 32px;
+  height: 32px;
   color: #a78bfa;
+  flex-shrink: 0;
 }
 
 .header-text {
-  font-size: 3rem;
-  font-weight: bold;
+  font-size: 1.5rem;
+  font-weight: 600;
   background: linear-gradient(to right, #a78bfa, #ec4899);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.2;
 }
 
 .header-subtitle {
-  color: #cbd5e1;
-  font-size: 1.125rem;
+  display: none; /* Hide subtitle to save space */
 }
 
 /* Mobile header optimization */
 @media (max-width: 768px) {
   .llm-council-header {
-    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
   }
 
   .back-to-home-button-header {
-    position: static;
-    margin-bottom: 1rem;
     width: auto;
   }
 
   .header-title {
     gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-xs);
   }
 
   .header-icon {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 24px;
+    height: 24px;
   }
 
   .header-text {
-    font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-
-  .header-subtitle {
-    font-size: var(--text-base);
-    line-height: 1.5;
-    padding: 0 var(--spacing-md);
+    font-size: 1.25rem;
+    font-weight: 600;
   }
 }
 

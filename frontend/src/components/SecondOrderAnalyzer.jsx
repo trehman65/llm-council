@@ -384,18 +384,15 @@ const SecondOrderAnalyzer = () => {
             className="back-button"
             title="Back to Home"
           >
-            <ArrowBack style={{ fontSize: 20 }} />
+            <ArrowBack style={{ fontSize: 18 }} />
             <span>Back</span>
           </button>
 
           <div className="second-order-title-section">
             <div className="second-order-icon-large">
-              <AccountTree style={{ fontSize: 40 }} />
+              <AccountTree style={{ fontSize: 20 }} />
             </div>
             <h1 className="second-order-title">Second-Order Effect Analyzer</h1>
-            <p className="second-order-subtitle">
-              Analyze cascading consequences and anticipate unintended outcomes
-            </p>
           </div>
         </div>
 

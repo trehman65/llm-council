@@ -545,16 +545,13 @@ const LLMCouncil = () => {
             className="back-to-home-button-header"
             title="Back to Home"
           >
-            <ArrowBack style={{ fontSize: 20 }} />
+            <ArrowBack style={{ fontSize: 18 }} />
             <span>Back</span>
           </button>
           <div className="header-title">
             <Users className="header-icon" />
             <h1 className="header-text">LLM Council</h1>
           </div>
-          <p className="header-subtitle">
-            Multiple AI models debate to answer your hardest questions
-          </p>
         </div>
 
         {showDebug && (

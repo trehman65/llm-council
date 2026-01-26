@@ -26,9 +26,12 @@
 }
 
 .second-order-header {
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md) 0;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
 .back-button {
@@ -42,9 +45,9 @@
   color: #cbd5e1;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 1.5rem;
   font-size: 0.9rem;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .back-button:hover {
@@ -55,38 +58,40 @@
 
 .second-order-title-section {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  text-align: center;
+  gap: var(--spacing-sm);
+  flex: 1;
 }
 
 .second-order-icon-large {
-  width: 80px;
-  height: 80px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(59, 130, 246, 0.2);
-  border-radius: 1rem;
-  border: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(59, 130, 246, 0.5);
   color: #3b82f6;
+  flex-shrink: 0;
 }
 
 .second-order-title {
-  font-size: 3rem;
-  font-weight: bold;
+  font-size: 1.5rem;
+  font-weight: 600;
   background: linear-gradient(to right, #3b82f6, #60a5fa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
+  line-height: 1.2;
 }
 
 .second-order-subtitle {
-  font-size: 1.125rem;
-  color: #cbd5e1;
+  font-size: 0.875rem;
+  color: #94a3b8;
   margin: 0;
+  display: none; /* Hide subtitle to save space */
 }
 
 /* Reuse LLM Council card styles */
@@ -467,6 +472,20 @@
 
   .question-input {
     font-size: var(--text-base);
+  }
+
+  .second-order-header {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .second-order-title {
+    font-size: 1.25rem;
+  }
+
+  .second-order-icon-large {
+    width: 24px;
+    height: 24px;
   }
 }
 
