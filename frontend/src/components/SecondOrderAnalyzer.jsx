@@ -475,11 +475,19 @@ const SecondOrderAnalyzer = () => {
                     disabled={loading}
                     type="button"
                   >
-                    <span className="chip-label">Problem:</span> {example.problem} → <span className="chip-label">Solution:</span> {example.solution}
+                    <div className="chip-content">
+                      <div className="chip-line">
+                        <span className="chip-label">Problem:</span> {example.problem}
+                      </div>
+                      <div className="chip-line">
+                        <span className="chip-label">Solution:</span> {example.solution}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
+
           </div>
         )}
 
@@ -819,6 +827,21 @@ const SecondOrderAnalyzer = () => {
             ) : null}
           </div>
         )}
+
+        <div className="footer">
+          <p>
+            Based on{' '}
+            <a 
+              href="https://docs.google.com/document/d/131dyBmW1EBl0hxbkahLthFNiRRLdK-o5CMz0EgF00u0/edit?tab=t.0" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="footer-link"
+            >
+              The Second-Order Toolkit: An Operational Manual for Strategic Impact Analysis in Product Management
+            </a>
+          </p>
+          <p>Analyzing cascading consequences and unintended outcomes</p>
+        </div>
       </div>
     </div>
   );

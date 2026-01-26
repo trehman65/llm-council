@@ -265,7 +265,7 @@
 }
 
 .recommended-chip {
-  padding: 8px 14px;
+  padding: 10px 14px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(71, 85, 105, 0.4);
   border-radius: 16px;
@@ -276,9 +276,19 @@
   font-family: inherit;
   white-space: normal;
   font-weight: 400;
-  line-height: 1.4;
   text-align: left;
   max-width: 100%;
+  width: 100%;
+}
+
+.chip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chip-line {
+  line-height: 1.4;
 }
 
 .recommended-chip:hover:not(:disabled) {
@@ -718,5 +728,43 @@
     width: 1.5rem;
     height: 1.5rem;
     font-size: 1rem;
+  }
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  color: #94a3b8;
+  font-size: var(--text-sm);
+}
+
+.footer p {
+  margin: var(--spacing-xs) 0;
+}
+
+.footer-link {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* Mobile footer */
+@media (max-width: 768px) {
+  .footer {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    font-size: var(--text-xs);
+  }
+
+  .footer p {
+    margin: var(--spacing-xs) 0;
+    line-height: 1.5;
   }
 }
