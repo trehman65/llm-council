@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, TrendingUp, AlertTriangle, Target, CheckCircle, Trophy } from 'lucide-react';
-import { AccountTree, ArrowBack, ArrowForward } from '@mui/icons-material';
+import { Loader2, TrendingUp, AlertTriangle, Target, CheckCircle, Trophy, Network } from 'lucide-react';
+import { ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
@@ -383,14 +383,14 @@ const SecondOrderAnalyzer = () => {
             onClick={() => navigate('/')}
             className="back-button"
             title="Back to Home"
+            aria-label="Back to Home"
           >
-            <ArrowBack style={{ fontSize: 18 }} />
-            <span>Back</span>
+            <ArrowBack style={{ fontSize: 24 }} />
           </button>
 
           <div className="second-order-title-section">
             <div className="second-order-icon-large">
-              <AccountTree style={{ fontSize: 20 }} />
+              <Network style={{ fontSize: 20 }} />
             </div>
             <h1 className="second-order-title">Second-Order Effect Analyzer</h1>
           </div>
@@ -441,7 +441,7 @@ const SecondOrderAnalyzer = () => {
                 </>
               ) : (
                 <>
-                  <AccountTree style={{ fontSize: 20 }} />
+                  <Network style={{ fontSize: 20 }} />
                   Analyze Impacts
                 </>
               )}

@@ -41,6 +41,12 @@ PROBLEM STATEMENT:
 PROPOSED SOLUTION:
 {solution}
 
+CRITICAL INSTRUCTIONS:
+1. Focus ONLY on IMMEDIATE, DIRECT impacts that happen right away
+2. Do NOT include reactions, adaptations, or downstream effects (those are second-order)
+3. Do NOT include long-term structural changes (those are third-order)
+4. First-order = what happens immediately as a direct result of the solution
+
 Analyze the FIRST-ORDER CONSEQUENCES (immediate, direct, intended results) of this solution.
 
 Structure your analysis as follows:
@@ -96,6 +102,7 @@ async def analyze_second_order_impacts(
     Second-order consequences are the reactions of the system to the first-order change.
     They often involve a time delay and a response from system agents.
     """
+    # Extract key first-order points for linking
     prompt = f"""You are a strategic product management advisor using Second-Order Thinking.
 
 PROBLEM STATEMENT:
@@ -107,10 +114,18 @@ PROPOSED SOLUTION:
 FIRST-ORDER ANALYSIS:
 {first_order_analysis}
 
+CRITICAL INSTRUCTIONS:
+1. DO NOT repeat or restate anything from the first-order analysis
+2. Second-order consequences are the NEXT LEVEL - reactions and adaptations that happen AFTER the first-order impacts
+3. Focus on what happens NEXT, not what already happened
+4. Start your analysis with: "First Order: [brief 1-2 sentence summary of key first-order impact]. And Then What? (Second Order):"
+
 Now analyze SECOND-ORDER CONSEQUENCES using the "And Then What?" protocol.
 
 Second-order consequences are the REACTIONS of the system to the first-order change.
 They involve time delays and responses from users, competitors, internal teams, and the market.
+
+These are NOT the same as first-order impacts. They are what happens NEXT as a result of those first-order changes.
 
 For each first-order impact, ask "And then what?" to identify:
 
@@ -196,7 +211,16 @@ FIRST-ORDER ANALYSIS:
 SECOND-ORDER ANALYSIS:
 {second_order_analysis}
 
+CRITICAL INSTRUCTIONS:
+1. DO NOT repeat anything from first-order or second-order analyses
+2. Third-order consequences are the NEXT LEVEL - structural shifts that happen AFTER the second-order reactions
+3. Focus on what happens NEXT at a deeper, more fundamental level
+4. Start your analysis with: "Second Order: [brief 1-2 sentence summary of key second-order impact]. Third Order (The Structural Shift):"
+
 Now analyze THIRD-ORDER CONSEQUENCES (structural, long-term, often irreversible shifts).
+
+Third-order consequences are the LONG-TERM STRUCTURAL CHANGES that occur AFTER the second-order reactions.
+These are NOT the same as first or second-order impacts. They represent fundamental shifts in the system's structure.
 
 Third-order consequences are the LONG-TERM STRUCTURAL CHANGES to:
 - System architecture and capabilities

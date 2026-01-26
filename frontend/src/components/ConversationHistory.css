@@ -139,6 +139,23 @@
   color: #a78bfa;
 }
 
+/* Tool-specific icon colors */
+.conversation-icon-llm-council {
+  color: #a78bfa !important; /* Purple for LLM Council */
+}
+
+.conversation-item.active .conversation-icon-llm-council {
+  color: #c084fc !important; /* Lighter purple when active */
+}
+
+.conversation-icon-second-order {
+  color: #3b82f6 !important; /* Blue for Second Order */
+}
+
+.conversation-item.active .conversation-icon-second-order {
+  color: #60a5fa !important; /* Lighter blue when active */
+}
+
 .conversation-content {
   flex: 1;
   min-width: 0;

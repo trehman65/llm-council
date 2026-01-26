@@ -544,9 +544,9 @@ const LLMCouncil = () => {
             onClick={() => navigate('/')}
             className="back-to-home-button-header"
             title="Back to Home"
+            aria-label="Back to Home"
           >
-            <ArrowBack style={{ fontSize: 18 }} />
-            <span>Back</span>
+            <ArrowBack style={{ fontSize: 24 }} />
           </button>
           <div className="header-title">
             <Users className="header-icon" />

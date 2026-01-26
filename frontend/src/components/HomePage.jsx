@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Groups, AccountTree, ArrowForward, Logout } from '@mui/icons-material';
+import { Groups, ArrowForward, Logout } from '@mui/icons-material';
+import { Network } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './HomePage.css';
 
@@ -93,7 +94,7 @@ const HomePage = () => {
               onClick={() => handleSelectTool('second-order')}
             >
               <div className="tool-icon-wrapper second-order-icon">
-                <AccountTree style={{ fontSize: 24 }} />
+                <Network style={{ fontSize: 24 }} />
               </div>
               <div className="tool-content">
                 <h3 className="tool-title">Second-Order Effects</h3>

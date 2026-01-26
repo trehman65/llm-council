@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Plus, Trash2, Loader2, User, LogOut } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Loader2, User, LogOut, Users, Network } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import './ConversationHistory.css';
@@ -145,6 +145,36 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
     return null;
   };
 
+  // Detect conversation type from metadata (title or first_question)
+  const detectConversationTypeFromMetadata = (conversation) => {
+    // Check title pattern
+    if (conversation.title) {
+      if (conversation.title.startsWith('Second-Order Analysis')) {
+        return 'second-order';
+      }
+    }
+    
+    // Check first_question format
+    if (conversation.first_question) {
+      const content = conversation.first_question;
+      if (content.includes('Problem:') && content.includes('Solution:')) {
+        return 'second-order';
+      }
+    }
+    
+    // Default to LLM Council if we can't determine
+    return 'llm-council';
+  };
+
+  // Get icon component for conversation type
+  const getConversationIcon = (conversation) => {
+    const type = detectConversationTypeFromMetadata(conversation);
+    if (type === 'second-order') {
+      return <Network className="conversation-icon conversation-icon-second-order" />;
+    }
+    return <Users className="conversation-icon conversation-icon-llm-council" />;
+  };
+
   const handleSelectConversation = async (conversationId) => {
     try {
       const conversation = await api.getConversation(conversationId, token);
@@ -282,7 +312,7 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
                 className={`conversation-item ${currentConversationId === conv.id ? 'active' : ''}`}
                 title={conv.title}
               >
-                <MessageSquare className="conversation-icon" />
+                {getConversationIcon(conv)}
                 <div className="conversation-content">
                   <div className="conversation-title">{conv.title || 'Untitled'}</div>
                   <div className="conversation-meta">
