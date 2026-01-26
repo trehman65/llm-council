@@ -558,22 +558,26 @@ const SecondOrderAnalyzer = () => {
                 <div className="analysis-text markdown-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{firstOrderData.analysis || ''}</ReactMarkdown>
                 </div>
-                {secondOrderData && (
-                  <div className="action-buttons">
-                    <button
-                      onClick={() => handleNavigateToStage('stage2')}
-                      className="primary-button"
-                    >
-                      View Second-Order Impacts
-                      <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                    </button>
+                
+                {/* Loading indicator for Stage 2 - inline, like LLMCouncil */}
+                {loadingStage === 'stage2' && (
+                  <div className="stage-loading">
+                    <Loader2 className="spinner" />
+                    <span>Running Stage 2: Analyzing second-order impacts...</span>
                   </div>
                 )}
-                {!secondOrderData && loadingStage === 'stage2' && (
-                  <div className="action-buttons">
-                    <div className="loading-state">
-                      <Loader2 className="spinner" />
-                      <span className="loading-text">Analyzing second-order impacts...</span>
+                
+                {/* Stage 2 content - appears after loading */}
+                {secondOrderData && (
+                  <div className="stage-content">
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleNavigateToStage('stage2')}
+                        className="primary-button"
+                      >
+                        View Second-Order Impacts
+                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -646,22 +650,26 @@ const SecondOrderAnalyzer = () => {
                 <div className="analysis-text markdown-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{secondOrderData.analysis || ''}</ReactMarkdown>
                 </div>
-                {thirdOrderData && (
-                  <div className="action-buttons">
-                    <button
-                      onClick={() => handleNavigateToStage('stage3')}
-                      className="primary-button"
-                    >
-                      View Third-Order Impacts
-                      <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                    </button>
+                
+                {/* Loading indicator for Stage 3 - inline, like LLMCouncil */}
+                {loadingStage === 'stage3' && (
+                  <div className="stage-loading">
+                    <Loader2 className="spinner" />
+                    <span>Running Stage 3: Analyzing third-order impacts...</span>
                   </div>
                 )}
-                {!thirdOrderData && loadingStage === 'stage3' && (
-                  <div className="action-buttons">
-                    <div className="loading-state">
-                      <Loader2 className="spinner" />
-                      <span className="loading-text">Analyzing third-order impacts...</span>
+                
+                {/* Stage 3 content - appears after loading */}
+                {thirdOrderData && (
+                  <div className="stage-content">
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleNavigateToStage('stage3')}
+                        className="primary-button"
+                      >
+                        View Third-Order Impacts
+                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -732,22 +740,26 @@ const SecondOrderAnalyzer = () => {
                 <div className="analysis-text markdown-content">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{thirdOrderData.analysis || ''}</ReactMarkdown>
                 </div>
-                {recommendationsData && (
-                  <div className="action-buttons">
-                    <button
-                      onClick={() => handleNavigateToStage('stage4')}
-                      className="primary-button"
-                    >
-                      View Recommendations
-                      <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                    </button>
+                
+                {/* Loading indicator for Stage 4 - inline, like LLMCouncil */}
+                {loadingStage === 'stage4' && (
+                  <div className="stage-loading">
+                    <Loader2 className="spinner" />
+                    <span>Running Stage 4: Generating recommendations...</span>
                   </div>
                 )}
-                {!recommendationsData && loadingStage === 'stage4' && (
-                  <div className="action-buttons">
-                    <div className="loading-state">
-                      <Loader2 className="spinner" />
-                      <span className="loading-text">Generating recommendations...</span>
+                
+                {/* Stage 4 content - appears after loading */}
+                {recommendationsData && (
+                  <div className="stage-content">
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleNavigateToStage('stage4')}
+                        className="primary-button"
+                      >
+                        View Recommendations
+                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
+                      </button>
                     </div>
                   </div>
                 )}
