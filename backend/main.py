@@ -43,9 +43,36 @@ cors_origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
 ]
+
 # Add Render frontend URL if provided via environment variable
-if os.getenv("FRONTEND_URL"):
-    cors_origins.append(os.getenv("FRONTEND_URL"))
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    # Normalize URL: strip trailing slash and ensure proper format
+    frontend_url = frontend_url.strip().rstrip("/")
+    
+    # If no protocol specified, assume https for production
+    if not frontend_url.startswith(("http://", "https://")):
+        # Check if we're in production (Render sets PORT)
+        if os.getenv("PORT"):
+            frontend_url = f"https://{frontend_url}"
+        else:
+            frontend_url = f"http://{frontend_url}"
+    
+    cors_origins.append(frontend_url)
+    
+    # Also add the domain without protocol (some browsers send just the domain)
+    if frontend_url.startswith("https://"):
+        domain_only = frontend_url.replace("https://", "").split("/")[0]
+        cors_origins.append(f"https://{domain_only}")
+        cors_origins.append(f"http://{domain_only}")  # For redirects that might use http
+    elif frontend_url.startswith("http://"):
+        domain_only = frontend_url.replace("http://", "").split("/")[0]
+        cors_origins.append(f"http://{domain_only}")
+        cors_origins.append(f"https://{domain_only}")  # For production that should be https
+
+# Log CORS origins in production for debugging (without exposing secrets)
+if os.getenv("ENVIRONMENT") == "production" or os.getenv("PORT"):
+    print(f"CORS allowed origins: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
