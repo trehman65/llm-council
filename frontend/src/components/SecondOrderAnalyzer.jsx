@@ -3,6 +3,7 @@ import { Loader2, TrendingUp, AlertTriangle, Target, CheckCircle, Trophy, Networ
 import { ArrowBack, ArrowForward } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
@@ -555,7 +556,7 @@ const SecondOrderAnalyzer = () => {
             ) : firstOrderData ? (
               <div className="analysis-content">
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown>{firstOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{firstOrderData.analysis || ''}</ReactMarkdown>
                 </div>
                 {secondOrderData && (
                   <div className="action-buttons">
@@ -643,7 +644,7 @@ const SecondOrderAnalyzer = () => {
             ) : secondOrderData ? (
               <div className="analysis-content">
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown>{secondOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{secondOrderData.analysis || ''}</ReactMarkdown>
                 </div>
                 {thirdOrderData && (
                   <div className="action-buttons">
@@ -729,7 +730,7 @@ const SecondOrderAnalyzer = () => {
             ) : thirdOrderData ? (
               <div className="analysis-content">
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown>{thirdOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{thirdOrderData.analysis || ''}</ReactMarkdown>
                 </div>
                 {recommendationsData && (
                   <div className="action-buttons">
@@ -813,7 +814,7 @@ const SecondOrderAnalyzer = () => {
             ) : recommendationsData ? (
               <div className="analysis-content">
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown>{recommendationsData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{recommendationsData.analysis || ''}</ReactMarkdown>
                 </div>
                 <div className="action-buttons">
                   <button

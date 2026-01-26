@@ -134,6 +134,44 @@ body {
   color: #666;
 }
 
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-content table thead {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.markdown-content table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  color: #e2e8f0;
+}
+
+.markdown-content table td {
+  padding: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  color: #cbd5e1;
+}
+
+.markdown-content table tbody tr {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+.markdown-content table tbody tr:nth-child(even) {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.markdown-content table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
 /* Mobile responsive markdown - optimized for reading */
 @media (max-width: 768px) {
   .markdown-content {
@@ -144,6 +182,19 @@ body {
     margin: 0 0 var(--spacing-sm) 0;
     font-size: var(--text-base);
     line-height: 1.6;
+  }
+
+  .markdown-content table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: var(--text-sm);
+  }
+
+  .markdown-content table th,
+  .markdown-content table td {
+    padding: 8px;
+    font-size: var(--text-sm);
   }
 
   .markdown-content p:last-child {

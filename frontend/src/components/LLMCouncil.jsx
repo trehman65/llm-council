@@ -3,6 +3,7 @@ import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
@@ -19,6 +20,7 @@ const InlineMarkdown = ({ text }) => {
   try {
     return (
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           p: ({ children }) => <span>{children}</span>,
           h1: ({ children }) => <span>{children}</span>,
@@ -719,7 +721,7 @@ const LLMCouncil = () => {
                     <h3 className="response-model">{responses[selectedTab]?.model}</h3>
                   </div>
                   <div className="response-text">
-                    <ReactMarkdown>{responses[selectedTab]?.response || ''}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{responses[selectedTab]?.response || ''}</ReactMarkdown>
                   </div>
                 </div>
 
@@ -939,7 +941,7 @@ const LLMCouncil = () => {
               <>
                 <div className="final-answer">
                   <div className="final-answer-text">
-                    <ReactMarkdown>{cleanFinalAnswer(finalAnswer)}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanFinalAnswer(finalAnswer)}</ReactMarkdown>
                   </div>
                 </div>
 
