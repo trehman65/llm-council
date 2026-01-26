@@ -35,7 +35,7 @@ const HomePage = () => {
         <div className="navbar-content">
           <div className="navbar-brand">
             <Groups className="brand-icon" />
-            <span className="brand-name">DecisionLab</span>
+            <span className="brand-name">Better PM</span>
           </div>
           <div className="navbar-actions">
             {user ? (
