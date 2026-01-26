@@ -110,10 +110,60 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
     }
   };
 
+  const detectConversationType = (conversation) => {
+    // Check messages to determine conversation type
+    if (!conversation.messages || conversation.messages.length === 0) {
+      return null; // Can't determine type for empty conversations
+    }
+    
+    // Look for assistant messages with type indicators
+    for (const msg of conversation.messages) {
+      if (msg.role === 'assistant') {
+        // Second-order analysis has type field
+        if (msg.type === 'second_order_analysis') {
+          return 'second-order';
+        }
+        // LLM Council has stage1, stage2, stage3 fields (no type field)
+        if (msg.stage1 || msg.stage2 || msg.stage3) {
+          return 'llm-council';
+        }
+      }
+    }
+    
+    // If no assistant messages yet, check user message format
+    const userMessage = conversation.messages.find(msg => msg.role === 'user');
+    if (userMessage) {
+      const content = userMessage.content || '';
+      // Second-order has "Problem:" and "Solution:" format
+      if (content.includes('Problem:') && content.includes('Solution:')) {
+        return 'second-order';
+      }
+      // Otherwise assume LLM Council (regular question format)
+      return 'llm-council';
+    }
+    
+    return null;
+  };
+
   const handleSelectConversation = async (conversationId) => {
     try {
       const conversation = await api.getConversation(conversationId, token);
-      onSelectConversation(conversation);
+      
+      // Detect conversation type and navigate to appropriate tool
+      const conversationType = detectConversationType(conversation);
+      const currentPath = window.location.pathname;
+      
+      if (conversationType === 'second-order' && currentPath !== '/second-order') {
+        // Navigate to second-order analyzer with conversation data in state
+        navigate('/second-order', { state: { conversation } });
+      } else if (conversationType === 'llm-council' && currentPath !== '/llm-council') {
+        // Navigate to LLM Council with conversation data in state
+        navigate('/llm-council', { state: { conversation } });
+      } else {
+        // Already on the correct page, just load the conversation
+        onSelectConversation(conversation);
+      }
+      
       // Close sidebar on mobile after selection
       if (window.innerWidth <= 768) {
         setIsOpen(false);

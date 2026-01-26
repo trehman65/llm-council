@@ -321,4 +321,160 @@ export const api = {
       throw error;
     }
   },
+
+  /**
+   * Analyze second-order impacts in guest mode (no authentication required).
+   * @param {string} problem - The problem statement
+   * @param {string} solution - The proposed solution
+   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
+   * @returns {Promise<void>}
+   */
+  async analyzeSecondOrderGuest(problem, solution, onEvent) {
+    try {
+      if (import.meta.env.DEV) {
+        console.log('Sending second-order analysis request (guest)');
+      }
+      const response = await fetch(
+        `${API_BASE}/api/second-order/analyze/stream`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ problem, solution }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (import.meta.env.DEV) {
+          console.error('Second-order analysis error:', response.status, errorText);
+        }
+        throw new Error(`Failed to analyze: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null - streaming not supported');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (import.meta.env.DEV) {
+            console.log('Second-order analysis stream completed');
+          }
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() && line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data) {
+              try {
+                const event = JSON.parse(data);
+                onEvent(event.type, event);
+              } catch (e) {
+                if (import.meta.env.DEV) {
+                  console.error('Failed to parse SSE event:', e, 'Data:', data);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Second-order analysis error:', error);
+      }
+      onEvent('error', { message: error.message || 'Analysis failed' });
+      throw error;
+    }
+  },
+
+  /**
+   * Analyze second-order impacts and save to conversation.
+   * @param {string} conversationId - The conversation ID
+   * @param {string} problem - The problem statement
+   * @param {string} solution - The proposed solution
+   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
+   * @param {string} token - Authentication token
+   * @returns {Promise<void>}
+   */
+  async analyzeSecondOrderStream(conversationId, problem, solution, onEvent, token = null) {
+    try {
+      if (import.meta.env.DEV) {
+        console.log('Sending second-order analysis request to conversation:', conversationId);
+      }
+      const response = await fetch(
+        `${API_BASE}/api/conversations/${conversationId}/second-order/analyze/stream`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(token),
+          credentials: 'include',
+          body: JSON.stringify({ problem, solution }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (import.meta.env.DEV) {
+          console.error('Second-order analysis error:', response.status, errorText);
+        }
+        throw new Error(`Failed to analyze: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null - streaming not supported');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          if (import.meta.env.DEV) {
+            console.log('Second-order analysis stream completed');
+          }
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() && line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data) {
+              try {
+                const event = JSON.parse(data);
+                onEvent(event.type, event);
+              } catch (e) {
+                if (import.meta.env.DEV) {
+                  console.error('Failed to parse SSE event:', e, 'Data:', data);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Second-order analysis error:', error);
+      }
+      onEvent('error', { message: error.message || 'Analysis failed' });
+      throw error;
+    }
+  },
 };

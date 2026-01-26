@@ -225,6 +225,39 @@ def add_assistant_message(
     save_conversation(conversation)
 
 
+def add_second_order_message(
+    conversation_id: str,
+    first_order: Dict[str, Any],
+    second_order: Dict[str, Any],
+    third_order: Dict[str, Any],
+    recommendations: Dict[str, Any]
+):
+    """
+    Add a second-order analysis message to a conversation.
+
+    Args:
+        conversation_id: Conversation identifier
+        first_order: First-order impact analysis
+        second_order: Second-order impact analysis
+        third_order: Third-order impact analysis
+        recommendations: Recommendations and mitigations
+    """
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+
+    conversation["messages"].append({
+        "role": "assistant",
+        "type": "second_order_analysis",
+        "first_order": first_order,
+        "second_order": second_order,
+        "third_order": third_order,
+        "recommendations": recommendations
+    })
+
+    save_conversation(conversation)
+
+
 def update_conversation_title(conversation_id: str, title: str):
     """
     Update the title of a conversation.

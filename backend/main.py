@@ -25,6 +25,13 @@ from .council import (
     stage3_synthesize_final,
     calculate_aggregate_rankings,
 )
+from .second_order import (
+    run_full_second_order_analysis,
+    analyze_first_order_impacts,
+    analyze_second_order_impacts,
+    analyze_third_order_impacts,
+    generate_recommendations,
+)
 
 app = FastAPI(title="LLM Council API")
 
@@ -83,6 +90,20 @@ class SendMessageRequest(BaseModel):
         if len(content) > 10000:
             raise ValueError("Message content cannot exceed 10000 characters")
         return content
+
+
+class SecondOrderAnalysisRequest(BaseModel):
+    """Request for second-order impact analysis."""
+    problem: str = Field(..., min_length=1, max_length=5000, description="The problem you're trying to solve")
+    solution: str = Field(..., min_length=1, max_length=5000, description="The solution you're proposing")
+    
+    @field_validator('problem', 'solution')
+    @classmethod
+    def validate_text(cls, v: str, info) -> str:
+        """Validate and sanitize text fields."""
+        if not v or not v.strip():
+            raise ValueError(f"{info.field_name} cannot be empty")
+        return v.strip()
 
 
 class ConversationMetadata(BaseModel):
@@ -432,6 +453,177 @@ async def guest_message_stream(request: SendMessageRequest):
 
         except Exception as e:
             # Send error event
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+
+# ==================== Second-Order Analysis Endpoints ====================
+
+@app.post("/api/second-order/analyze/stream")
+async def analyze_second_order_stream(
+    request: SecondOrderAnalysisRequest,
+    current_user: Optional[Dict[str, Any]] = Depends(auth.get_optional_user)
+):
+    """
+    Analyze second-order impacts of a product decision.
+    Returns Server-Sent Events as each stage completes.
+    Works in both authenticated and guest modes.
+    """
+    async def event_generator():
+        try:
+            # Stage 1: First-order impacts
+            yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
+            first_order = await analyze_first_order_impacts(request.problem, request.solution)
+            yield f"data: {json.dumps({'type': 'stage1_complete', 'data': first_order})}\n\n"
+
+            # Stage 2: Second-order impacts
+            yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
+            second_order = await analyze_second_order_impacts(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage2_complete', 'data': second_order})}\n\n"
+
+            # Stage 3: Third-order impacts
+            yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
+            third_order = await analyze_third_order_impacts(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", ""),
+                second_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage3_complete', 'data': third_order})}\n\n"
+
+            # Stage 4: Recommendations
+            yield f"data: {json.dumps({'type': 'stage4_start'})}\n\n"
+            recommendations = await generate_recommendations(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", ""),
+                second_order.get("analysis", ""),
+                third_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage4_complete', 'data': recommendations})}\n\n"
+
+            # Send completion event
+            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+
+        except Exception as e:
+            import logging
+            logging.error(f"Second-order analysis error: {str(e)}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+
+@app.post("/api/conversations/{conversation_id}/second-order/analyze/stream")
+async def analyze_second_order_conversation_stream(
+    conversation_id: str,
+    request: SecondOrderAnalysisRequest,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
+    """
+    Analyze second-order impacts and save to conversation.
+    Returns Server-Sent Events as each stage completes.
+    """
+    # Check if conversation exists
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Verify the conversation belongs to the current user
+    if conversation.get("user_id") and conversation["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Check if this is the first message
+    is_first_message = len(conversation["messages"]) == 0
+
+    async def event_generator():
+        try:
+            # Format user message
+            user_message = f"Problem: {request.problem}\n\nSolution: {request.solution}"
+            storage.add_user_message(conversation_id, user_message)
+
+            # Generate title if first message
+            title_task = None
+            if is_first_message:
+                title_text = f"Second-Order Analysis: {request.problem[:50]}"
+                title_task = asyncio.create_task(
+                    asyncio.to_thread(lambda: title_text[:50])
+                )
+
+            # Stage 1: First-order impacts
+            yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
+            first_order = await analyze_first_order_impacts(request.problem, request.solution)
+            yield f"data: {json.dumps({'type': 'stage1_complete', 'data': first_order})}\n\n"
+
+            # Stage 2: Second-order impacts
+            yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
+            second_order = await analyze_second_order_impacts(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage2_complete', 'data': second_order})}\n\n"
+
+            # Stage 3: Third-order impacts
+            yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
+            third_order = await analyze_third_order_impacts(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", ""),
+                second_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage3_complete', 'data': third_order})}\n\n"
+
+            # Stage 4: Recommendations
+            yield f"data: {json.dumps({'type': 'stage4_start'})}\n\n"
+            recommendations = await generate_recommendations(
+                request.problem,
+                request.solution,
+                first_order.get("analysis", ""),
+                second_order.get("analysis", ""),
+                third_order.get("analysis", "")
+            )
+            yield f"data: {json.dumps({'type': 'stage4_complete', 'data': recommendations})}\n\n"
+
+            # Update title if needed
+            if title_task:
+                title = await title_task
+                storage.update_conversation_title(conversation_id, title)
+                yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
+
+            # Save assistant message
+            storage.add_second_order_message(
+                conversation_id,
+                first_order,
+                second_order,
+                third_order,
+                recommendations
+            )
+
+            # Send completion event
+            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+
+        except Exception as e:
+            import logging
+            logging.error(f"Second-order analysis error: {str(e)}", exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
     return StreamingResponse(

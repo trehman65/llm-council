@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import { ArrowBack } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -37,6 +37,7 @@ const InlineMarkdown = ({ text }) => {
 
 const LLMCouncil = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, token, loading: authLoading, openLoginModal } = useAuth();
   const isGuest = !token;
   
@@ -442,6 +443,15 @@ const LLMCouncil = () => {
     // Scroll to top of the stage content
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Check for conversation data in location state (when navigating from ConversationHistory)
+  useEffect(() => {
+    if (location.state?.conversation) {
+      handleLoadConversation(location.state.conversation);
+      // Clear the state to prevent reloading on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Keep stageRef in sync with stage state
   useEffect(() => {
