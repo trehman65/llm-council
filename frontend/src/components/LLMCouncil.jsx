@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
+import { ArrowBack } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +36,7 @@ const InlineMarkdown = ({ text }) => {
 };
 
 const LLMCouncil = () => {
+  const navigate = useNavigate();
   const { user, token, loading: authLoading, openLoginModal } = useAuth();
   const isGuest = !token;
   
@@ -527,6 +530,14 @@ const LLMCouncil = () => {
       
       <div className="llm-council-content">
         <div className="llm-council-header">
+          <button
+            onClick={() => navigate('/')}
+            className="back-to-home-button-header"
+            title="Back to Home"
+          >
+            <ArrowBack style={{ fontSize: 20 }} />
+            <span>Back</span>
+          </button>
           <div className="header-title">
             <Users className="header-icon" />
             <h1 className="header-text">LLM Council</h1>
