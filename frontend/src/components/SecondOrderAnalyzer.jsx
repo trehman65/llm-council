@@ -9,6 +9,202 @@ import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
 import './SecondOrderAnalyzer.css';
 
+// Generate executive summary key takeaways from analysis text
+const extractKeyTakeaways = (analysisText, stageType = 'first') => {
+  if (!analysisText || typeof analysisText !== 'string') return [];
+  
+  // Clean the text
+  const cleanText = analysisText
+    .replace(/\*\*/g, '')
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    .trim();
+  
+  if (cleanText.length < 100) return [];
+  
+  const takeaways = [];
+  
+  // Parse into paragraphs and sections
+  const paragraphs = cleanText.split(/\n\n+/).filter(p => p.trim().length > 50);
+  const allSentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 30);
+  
+  // Identify key themes and insights
+  const themes = {
+    risks: [],
+    benefits: [],
+    impacts: [],
+    recommendations: [],
+    concerns: []
+  };
+  
+  // Categorize sentences by theme
+  allSentences.forEach(sentence => {
+    const lower = sentence.toLowerCase();
+    const trimmed = sentence.trim();
+    
+    // Risk indicators
+    if (/(risk|danger|threat|concern|problem|issue|challenge|difficulty|negative|adverse|harmful)/i.test(lower)) {
+      if (trimmed.length > 40 && trimmed.length < 200) {
+        themes.risks.push(trimmed);
+      }
+    }
+    
+    // Benefit indicators
+    if (/(benefit|advantage|positive|improve|enhance|increase|boost|gain|opportunity|value)/i.test(lower)) {
+      if (trimmed.length > 40 && trimmed.length < 200) {
+        themes.benefits.push(trimmed);
+      }
+    }
+    
+    // Impact indicators
+    if (/(impact|effect|consequence|result|outcome|lead to|cause|trigger|influence|affect)/i.test(lower)) {
+      if (trimmed.length > 40 && trimmed.length < 200) {
+        themes.impacts.push(trimmed);
+      }
+    }
+    
+    // Recommendation indicators
+    if (/(recommend|suggest|should|consider|implement|strategy|approach|solution|action)/i.test(lower)) {
+      if (trimmed.length > 40 && trimmed.length < 200) {
+        themes.recommendations.push(trimmed);
+      }
+    }
+    
+    // Concern indicators
+    if (/(critical|important|significant|major|key|essential|crucial|vital|urgent|priority)/i.test(lower)) {
+      if (trimmed.length > 40 && trimmed.length < 200) {
+        themes.concerns.push(trimmed);
+      }
+    }
+  });
+  
+  // Generate executive summaries based on stage type
+  if (stageType === 'first') {
+    // First-order: Focus on immediate, direct impacts
+    if (themes.impacts.length > 0) {
+      const impact = themes.impacts[0];
+      takeaways.push(impact.length > 150 ? impact.substring(0, 140) + '...' : impact);
+    }
+    if (themes.risks.length > 0 && takeaways.length < 3) {
+      const risk = themes.risks[0];
+      takeaways.push(risk.length > 150 ? risk.substring(0, 140) + '...' : risk);
+    }
+    if (themes.benefits.length > 0 && takeaways.length < 3) {
+      const benefit = themes.benefits[0];
+      takeaways.push(benefit.length > 150 ? benefit.substring(0, 140) + '...' : benefit);
+    }
+  } else if (stageType === 'second') {
+    // Second-order: Focus on cascading, indirect effects
+    if (themes.impacts.length > 0) {
+      const impact = themes.impacts[0];
+      takeaways.push(impact.length > 150 ? impact.substring(0, 140) + '...' : impact);
+    }
+    if (themes.risks.length > 0 && takeaways.length < 3) {
+      const risk = themes.risks[0];
+      takeaways.push(risk.length > 150 ? risk.substring(0, 140) + '...' : risk);
+    }
+    if (themes.concerns.length > 0 && takeaways.length < 3) {
+      const concern = themes.concerns[0];
+      takeaways.push(concern.length > 150 ? concern.substring(0, 140) + '...' : concern);
+    }
+  } else if (stageType === 'third') {
+    // Third-order: Focus on structural, systemic changes
+    if (themes.impacts.length > 0) {
+      const impact = themes.impacts[0];
+      takeaways.push(impact.length > 150 ? impact.substring(0, 140) + '...' : impact);
+    }
+    if (themes.concerns.length > 0 && takeaways.length < 3) {
+      const concern = themes.concerns[0];
+      takeaways.push(concern.length > 150 ? concern.substring(0, 140) + '...' : concern);
+    }
+    if (themes.risks.length > 0 && takeaways.length < 3) {
+      const risk = themes.risks[0];
+      takeaways.push(risk.length > 150 ? risk.substring(0, 140) + '...' : risk);
+    }
+  } else if (stageType === 'recommendations') {
+    // Recommendations: Focus on actionable insights
+    if (themes.recommendations.length > 0) {
+      themes.recommendations.slice(0, 2).forEach(rec => {
+        if (takeaways.length < 4) {
+          takeaways.push(rec.length > 150 ? rec.substring(0, 140) + '...' : rec);
+        }
+      });
+    }
+    if (themes.concerns.length > 0 && takeaways.length < 3) {
+      const concern = themes.concerns[0];
+      takeaways.push(concern.length > 150 ? concern.substring(0, 140) + '...' : concern);
+    }
+  }
+  
+  // If we don't have enough, extract from paragraphs intelligently
+  if (takeaways.length < 3) {
+    paragraphs.forEach(para => {
+      if (takeaways.length >= 5) return;
+      
+      const lowerPara = para.toLowerCase();
+      const trimmedPara = para.trim();
+      
+      // Find paragraphs with high information density
+      const hasKeyTerms = /(because|due to|leads to|results in|causes|enables|prevents|will|would|could|may|might|should)/i.test(lowerPara);
+      const hasImpactTerms = /(impact|effect|consequence|result|outcome|risk|benefit|critical|important|significant)/i.test(lowerPara);
+      
+      if (hasKeyTerms && hasImpactTerms && trimmedPara.length > 80 && trimmedPara.length < 400) {
+        // Extract the core message - first sentence or most important part
+        const sentences = trimmedPara.split(/[.!?]+/).filter(s => s.trim().length > 40);
+        if (sentences.length > 0) {
+          let takeaway = sentences[0].trim();
+          
+          // Clean and shorten if needed
+          takeaway = takeaway.replace(/^\d+[\.\)]\s*/, '').replace(/^[-*•]\s*/, '').trim();
+          
+          if (takeaway.length > 180) {
+            // Try to find the main clause
+            const parts = takeaway.split(/[,;]/);
+            if (parts.length > 1) {
+              takeaway = parts[0].trim();
+            } else {
+              takeaway = takeaway.substring(0, 160).trim();
+            }
+          }
+          
+          if (!takeaway.match(/[.!?]$/)) {
+            takeaway += '.';
+          }
+          
+          if (takeaway.length > 40 && takeaway.length < 200) {
+            const normalized = takeaway.toLowerCase().substring(0, 50);
+            const isDuplicate = takeaways.some(t => t.toLowerCase().substring(0, 50) === normalized);
+            if (!isDuplicate) {
+              takeaways.push(takeaway);
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Ensure takeaways are complete thoughts
+  const finalTakeaways = takeaways.map(takeaway => {
+    let cleaned = takeaway.trim();
+    if (!cleaned.match(/[.!?]$/)) {
+      cleaned += '.';
+    }
+    return cleaned;
+  }).filter(t => t.length > 30 && t.length < 200);
+  
+  // Deduplicate
+  const unique = [];
+  const seen = new Set();
+  finalTakeaways.forEach(takeaway => {
+    const normalized = takeaway.toLowerCase().substring(0, 60);
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(takeaway);
+    }
+  });
+  
+  return unique.slice(0, 5);
+};
+
 const SecondOrderAnalyzer = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,11 +221,33 @@ const SecondOrderAnalyzer = () => {
   const [notification, setNotification] = useState(null);
   const stageRef = useRef(stage);
   
+  // Track which analysis texts we've already generated takeaways for
+  const generatedTakeawaysRef = useRef({
+    first: null,
+    second: null,
+    third: null,
+    recommendations: null,
+  });
+  
   // Stage data
   const [firstOrderData, setFirstOrderData] = useState(null);
   const [secondOrderData, setSecondOrderData] = useState(null);
   const [thirdOrderData, setThirdOrderData] = useState(null);
   const [recommendationsData, setRecommendationsData] = useState(null);
+  
+  // Key takeaways for each stage
+  const [firstOrderTakeaways, setFirstOrderTakeaways] = useState([]);
+  const [secondOrderTakeaways, setSecondOrderTakeaways] = useState([]);
+  const [thirdOrderTakeaways, setThirdOrderTakeaways] = useState([]);
+  const [recommendationsTakeaways, setRecommendationsTakeaways] = useState([]);
+  
+  // Loading states for takeaways
+  const [loadingTakeaways, setLoadingTakeaways] = useState({
+    first: false,
+    second: false,
+    third: false,
+    recommendations: false,
+  });
 
   const reset = () => {
     setProblem('');
@@ -39,6 +257,16 @@ const SecondOrderAnalyzer = () => {
     setSecondOrderData(null);
     setThirdOrderData(null);
     setRecommendationsData(null);
+    setFirstOrderTakeaways([]);
+    setSecondOrderTakeaways([]);
+    setThirdOrderTakeaways([]);
+    setRecommendationsTakeaways([]);
+    generatedTakeawaysRef.current = {
+      first: null,
+      second: null,
+      third: null,
+      recommendations: null,
+    };
     setConversationId(null);
     setError(null);
     setLoading(false);
@@ -76,6 +304,14 @@ const SecondOrderAnalyzer = () => {
       );
       
       if (assistantMessage) {
+        // Reset takeaways ref so they can be regenerated for loaded data
+        generatedTakeawaysRef.current = {
+          first: null,
+          second: null,
+          third: null,
+          recommendations: null,
+        };
+        
         // Load stage data
         if (assistantMessage.first_order) {
           setFirstOrderData(assistantMessage.first_order);
@@ -284,6 +520,154 @@ const SecondOrderAnalyzer = () => {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Generate key takeaways when analysis data changes
+  useEffect(() => {
+    if (!firstOrderData) {
+      setFirstOrderTakeaways([]);
+      generatedTakeawaysRef.current.first = null;
+      return;
+    }
+    
+    const analysisText = typeof firstOrderData === 'string' ? firstOrderData : (firstOrderData?.analysis || '');
+    if (import.meta.env.DEV) {
+      console.log('First-order data:', firstOrderData);
+      console.log('Extracted analysis text length:', analysisText?.length);
+    }
+    
+    if (!analysisText || analysisText.length < 100) {
+      if (import.meta.env.DEV) {
+        console.log('Analysis text too short or empty, skipping takeaways generation');
+      }
+      setFirstOrderTakeaways([]);
+      generatedTakeawaysRef.current.first = null;
+      return;
+    }
+    
+    // Only generate if we haven't generated takeaways for this exact text yet
+    if (generatedTakeawaysRef.current.first !== analysisText) {
+      if (import.meta.env.DEV) {
+        console.log('Generating key takeaways for first-order analysis...', { textLength: analysisText.length });
+      }
+      generatedTakeawaysRef.current.first = analysisText;
+      setLoadingTakeaways(prev => ({ ...prev, first: true }));
+      api.generateKeyTakeaways(analysisText, 'first', token)
+        .then(result => {
+          if (import.meta.env.DEV) {
+            console.log('Key takeaways received:', result, 'Count:', result.takeaways?.length);
+          }
+          setFirstOrderTakeaways(result.takeaways || []);
+        })
+        .catch(error => {
+          console.error('Error generating first-order takeaways:', error);
+          setFirstOrderTakeaways([]);
+          generatedTakeawaysRef.current.first = null; // Reset on error so we can retry
+        })
+        .finally(() => {
+          setLoadingTakeaways(prev => ({ ...prev, first: false }));
+        });
+    } else {
+      if (import.meta.env.DEV) {
+        console.log('Takeaways already generated for this analysis text');
+      }
+    }
+  }, [firstOrderData, token]);
+
+  useEffect(() => {
+    if (!secondOrderData) {
+      setSecondOrderTakeaways([]);
+      generatedTakeawaysRef.current.second = null;
+      return;
+    }
+    
+    const analysisText = typeof secondOrderData === 'string' ? secondOrderData : (secondOrderData?.analysis || '');
+    if (!analysisText || analysisText.length < 100) {
+      setSecondOrderTakeaways([]);
+      generatedTakeawaysRef.current.second = null;
+      return;
+    }
+    
+    if (generatedTakeawaysRef.current.second !== analysisText) {
+      generatedTakeawaysRef.current.second = analysisText;
+      setLoadingTakeaways(prev => ({ ...prev, second: true }));
+      api.generateKeyTakeaways(analysisText, 'second', token)
+        .then(result => {
+          setSecondOrderTakeaways(result.takeaways || []);
+        })
+        .catch(error => {
+          console.error('Error generating second-order takeaways:', error);
+          setSecondOrderTakeaways([]);
+          generatedTakeawaysRef.current.second = null;
+        })
+        .finally(() => {
+          setLoadingTakeaways(prev => ({ ...prev, second: false }));
+        });
+    }
+  }, [secondOrderData, token]);
+
+  useEffect(() => {
+    if (!thirdOrderData) {
+      setThirdOrderTakeaways([]);
+      generatedTakeawaysRef.current.third = null;
+      return;
+    }
+    
+    const analysisText = typeof thirdOrderData === 'string' ? thirdOrderData : (thirdOrderData?.analysis || '');
+    if (!analysisText || analysisText.length < 100) {
+      setThirdOrderTakeaways([]);
+      generatedTakeawaysRef.current.third = null;
+      return;
+    }
+    
+    if (generatedTakeawaysRef.current.third !== analysisText) {
+      generatedTakeawaysRef.current.third = analysisText;
+      setLoadingTakeaways(prev => ({ ...prev, third: true }));
+      api.generateKeyTakeaways(analysisText, 'third', token)
+        .then(result => {
+          setThirdOrderTakeaways(result.takeaways || []);
+        })
+        .catch(error => {
+          console.error('Error generating third-order takeaways:', error);
+          setThirdOrderTakeaways([]);
+          generatedTakeawaysRef.current.third = null;
+        })
+        .finally(() => {
+          setLoadingTakeaways(prev => ({ ...prev, third: false }));
+        });
+    }
+  }, [thirdOrderData, token]);
+
+  useEffect(() => {
+    if (!recommendationsData) {
+      setRecommendationsTakeaways([]);
+      generatedTakeawaysRef.current.recommendations = null;
+      return;
+    }
+    
+    const analysisText = typeof recommendationsData === 'string' ? recommendationsData : (recommendationsData?.analysis || '');
+    if (!analysisText || analysisText.length < 100) {
+      setRecommendationsTakeaways([]);
+      generatedTakeawaysRef.current.recommendations = null;
+      return;
+    }
+    
+    if (generatedTakeawaysRef.current.recommendations !== analysisText) {
+      generatedTakeawaysRef.current.recommendations = analysisText;
+      setLoadingTakeaways(prev => ({ ...prev, recommendations: true }));
+      api.generateKeyTakeaways(analysisText, 'recommendations', token)
+        .then(result => {
+          setRecommendationsTakeaways(result.takeaways || []);
+        })
+        .catch(error => {
+          console.error('Error generating recommendations takeaways:', error);
+          setRecommendationsTakeaways([]);
+          generatedTakeawaysRef.current.recommendations = null;
+        })
+        .finally(() => {
+          setLoadingTakeaways(prev => ({ ...prev, recommendations: false }));
+        });
+    }
+  }, [recommendationsData, token]);
 
   // Handle notification click - navigate to next stage
   const handleNotificationClick = (targetStage) => {
@@ -555,8 +939,31 @@ const SecondOrderAnalyzer = () => {
               </div>
             ) : firstOrderData ? (
               <div className="analysis-content">
+                {/* Key Takeaways */}
+                {loadingTakeaways.first ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-loading">
+                      <Loader2 className="spinner" style={{ width: 16, height: 16 }} />
+                      <span>Generating key takeaways...</span>
+                    </div>
+                  </div>
+                ) : firstOrderTakeaways.length > 0 ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-list">
+                      {firstOrderTakeaways.map((takeaway, index) => (
+                        <div key={index} className="takeaway-item">
+                          <div className="takeaway-bullet"></div>
+                          <span>{takeaway}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{firstOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof firstOrderData === 'string' ? firstOrderData : (firstOrderData?.analysis || '')}</ReactMarkdown>
                 </div>
                 
                 {/* Loading indicator for Stage 2 - inline, like LLMCouncil */}
@@ -647,8 +1054,31 @@ const SecondOrderAnalyzer = () => {
               </div>
             ) : secondOrderData ? (
               <div className="analysis-content">
+                {/* Key Takeaways */}
+                {loadingTakeaways.second ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-loading">
+                      <Loader2 className="spinner" style={{ width: 16, height: 16 }} />
+                      <span>Generating key takeaways...</span>
+                    </div>
+                  </div>
+                ) : secondOrderTakeaways.length > 0 ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-list">
+                      {secondOrderTakeaways.map((takeaway, index) => (
+                        <div key={index} className="takeaway-item">
+                          <div className="takeaway-bullet"></div>
+                          <span>{takeaway}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{secondOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof secondOrderData === 'string' ? secondOrderData : (secondOrderData?.analysis || '')}</ReactMarkdown>
                 </div>
                 
                 {/* Loading indicator for Stage 3 - inline, like LLMCouncil */}
@@ -737,8 +1167,31 @@ const SecondOrderAnalyzer = () => {
               </div>
             ) : thirdOrderData ? (
               <div className="analysis-content">
+                {/* Key Takeaways */}
+                {loadingTakeaways.third ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-loading">
+                      <Loader2 className="spinner" style={{ width: 16, height: 16 }} />
+                      <span>Generating key takeaways...</span>
+                    </div>
+                  </div>
+                ) : thirdOrderTakeaways.length > 0 ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-list">
+                      {thirdOrderTakeaways.map((takeaway, index) => (
+                        <div key={index} className="takeaway-item">
+                          <div className="takeaway-bullet"></div>
+                          <span>{takeaway}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{thirdOrderData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof thirdOrderData === 'string' ? thirdOrderData : (thirdOrderData?.analysis || '')}</ReactMarkdown>
                 </div>
                 
                 {/* Loading indicator for Stage 4 - inline, like LLMCouncil */}
@@ -825,8 +1278,31 @@ const SecondOrderAnalyzer = () => {
               </div>
             ) : recommendationsData ? (
               <div className="analysis-content">
+                {/* Key Takeaways */}
+                {loadingTakeaways.recommendations ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-loading">
+                      <Loader2 className="spinner" style={{ width: 16, height: 16 }} />
+                      <span>Generating key takeaways...</span>
+                    </div>
+                  </div>
+                ) : recommendationsTakeaways.length > 0 ? (
+                  <div className="key-takeaways">
+                    <h3 className="takeaways-title">Key Takeaways</h3>
+                    <div className="takeaways-list">
+                      {recommendationsTakeaways.map((takeaway, index) => (
+                        <div key={index} className="takeaway-item">
+                          <div className="takeaway-bullet"></div>
+                          <span>{takeaway}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                
                 <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{recommendationsData.analysis || ''}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof recommendationsData === 'string' ? recommendationsData : (recommendationsData?.analysis || '')}</ReactMarkdown>
                 </div>
                 <div className="action-buttons">
                   <button

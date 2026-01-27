@@ -477,4 +477,43 @@ export const api = {
       throw error;
     }
   },
+
+  /**
+   * Generate key takeaways from analysis text.
+   * @param {string} analysisText - The analysis text to summarize
+   * @param {string} stageType - Type of analysis: 'first', 'second', 'third', or 'recommendations'
+   * @param {string} token - Optional authentication token
+   * @returns {Promise<{takeaways: string[]}>}
+   */
+  async generateKeyTakeaways(analysisText, stageType = 'first', token = null) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/second-order/key-takeaways`,
+        {
+          method: 'POST',
+          headers: getAuthHeaders(token),
+          credentials: 'include',
+          body: JSON.stringify({
+            analysis_text: analysisText,
+            stage_type: stageType,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (import.meta.env.DEV) {
+          console.error('Key takeaways error:', response.status, errorText);
+        }
+        throw new Error(`Failed to generate key takeaways: ${response.status} ${response.statusText}. ${errorText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Key takeaways error:', error);
+      }
+      throw error;
+    }
+  },
 };
