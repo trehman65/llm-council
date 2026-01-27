@@ -31,7 +31,6 @@ from .second_order import (
     analyze_second_order_impacts,
     analyze_third_order_impacts,
     generate_recommendations,
-    generate_key_takeaways,
 )
 
 app = FastAPI(title="LLM Council API")
@@ -132,29 +131,6 @@ class SecondOrderAnalysisRequest(BaseModel):
         if not v or not v.strip():
             raise ValueError(f"{info.field_name} cannot be empty")
         return v.strip()
-
-
-class KeyTakeawaysRequest(BaseModel):
-    """Request for generating key takeaways from analysis text."""
-    analysis_text: str = Field(..., min_length=1, description="The analysis text to summarize")
-    stage_type: str = Field(default='first', description="Type of analysis: 'first', 'second', 'third', or 'recommendations'")
-    
-    @field_validator('analysis_text')
-    @classmethod
-    def validate_analysis_text(cls, v: str) -> str:
-        """Validate analysis text."""
-        if not v or not v.strip():
-            raise ValueError("analysis_text cannot be empty")
-        return v.strip()
-    
-    @field_validator('stage_type')
-    @classmethod
-    def validate_stage_type(cls, v: str) -> str:
-        """Validate stage type."""
-        valid_types = ['first', 'second', 'third', 'recommendations']
-        if v not in valid_types:
-            raise ValueError(f"stage_type must be one of {valid_types}")
-        return v
 
 
 class ConversationMetadata(BaseModel):
@@ -517,33 +493,6 @@ async def guest_message_stream(request: SendMessageRequest):
 
 
 # ==================== Second-Order Analysis Endpoints ====================
-
-@app.get("/api/second-order/key-takeaways/test")
-async def test_key_takeaways_endpoint():
-    """Test endpoint to verify route registration."""
-    return {"status": "ok", "message": "Key takeaways endpoint is registered"}
-
-
-@app.post("/api/second-order/key-takeaways")
-async def generate_key_takeaways_endpoint(
-    request: KeyTakeawaysRequest,
-    current_user: Optional[Dict[str, Any]] = Depends(auth.get_optional_user)
-):
-    """
-    Generate key takeaways from analysis text using a different model than the chairman.
-    Works in both authenticated and guest modes.
-    """
-    try:
-        import logging
-        logging.info(f"Key takeaways request received: stage_type={request.stage_type}, text_length={len(request.analysis_text)}")
-        takeaways = await generate_key_takeaways(request.analysis_text, request.stage_type)
-        logging.info(f"Key takeaways generated: {len(takeaways)} items")
-        return {"takeaways": takeaways}
-    except Exception as e:
-        import logging
-        logging.error(f"Key takeaways generation error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate key takeaways: {str(e)}")
-
 
 @app.post("/api/second-order/analyze/stream")
 async def analyze_second_order_stream(
