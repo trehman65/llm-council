@@ -225,6 +225,27 @@ def add_assistant_message(
     save_conversation(conversation)
 
 
+def add_raw_assistant_message(conversation_id: str, content: str):
+    """
+    Add a raw assistant message with content to a conversation.
+    Used for storing structured data like second-order effects.
+
+    Args:
+        conversation_id: Conversation identifier
+        content: Assistant message content (can be JSON string)
+    """
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+
+    conversation["messages"].append({
+        "role": "assistant",
+        "content": content
+    })
+
+    save_conversation(conversation)
+
+
 def add_second_order_message(
     conversation_id: str,
     first_order: Dict[str, Any],
@@ -233,7 +254,7 @@ def add_second_order_message(
     recommendations: Dict[str, Any]
 ):
     """
-    Add a second-order analysis message to a conversation.
+    Add a second-order analysis message to a conversation (old format).
 
     Args:
         conversation_id: Conversation identifier

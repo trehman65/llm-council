@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Plus, Trash2, Loader2, User, LogOut, Users, Network } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import './ConversationHistory.css';
 
-const ConversationHistory = ({ onSelectConversation, onNewConversation, currentConversationId }) => {
+const ConversationHistory = forwardRef(({ onSelectConversation, onNewConversation, currentConversationId }, ref) => {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
@@ -39,6 +39,11 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
   useEffect(() => {
     loadConversations();
   }, []);
+
+  // Expose loadConversations method to parent via ref
+  useImperativeHandle(ref, () => ({
+    loadConversations
+  }));
 
   // Refresh conversations when a new one is created or when navigating
   const loadConversations = async () => {
@@ -117,15 +122,29 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
     }
     
     // Look for assistant messages with type indicators
+    // IMPORTANT: Check for LLM Council FIRST before second-order
     for (const msg of conversation.messages) {
       if (msg.role === 'assistant') {
-        // Second-order analysis has type field
+        // LLM Council has stage1, stage2, stage3 fields - check this FIRST
+        if (msg.stage1 || msg.stage2 || msg.stage3) {
+          return 'llm-council';
+        }
+        
+        // Second-order analysis has type field (old format)
         if (msg.type === 'second_order_analysis') {
           return 'second-order';
         }
-        // LLM Council has stage1, stage2, stage3 fields (no type field)
-        if (msg.stage1 || msg.stage2 || msg.stage3) {
-          return 'llm-council';
+        
+        // Check content for new format (second_order_effects)
+        if (msg.content) {
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.type === 'second_order_effects' && parsed.effects) {
+              return 'second-order';
+            }
+          } catch (e) {
+            // Not JSON, continue checking
+          }
         }
       }
     }
@@ -134,7 +153,7 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
     const userMessage = conversation.messages.find(msg => msg.role === 'user');
     if (userMessage) {
       const content = userMessage.content || '';
-      // Second-order has "Problem:" and "Solution:" format
+      // Second-order has "Problem:" and "Solution:" format, but only if no LLM Council data
       if (content.includes('Problem:') && content.includes('Solution:')) {
         return 'second-order';
       }
@@ -183,15 +202,32 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
       const conversationType = detectConversationType(conversation);
       const currentPath = window.location.pathname;
       
-      if (conversationType === 'second-order' && currentPath !== '/second-order') {
-        // Navigate to second-order analyzer with conversation data in state
-        navigate('/second-order', { state: { conversation } });
-      } else if (conversationType === 'llm-council' && currentPath !== '/llm-council') {
-        // Navigate to LLM Council with conversation data in state
-        navigate('/llm-council', { state: { conversation } });
+      console.log('Conversation type detected:', conversationType, 'Current path:', currentPath);
+      console.log('Conversation messages:', conversation.messages);
+      
+      if (conversationType === 'second-order') {
+        // Always navigate to second-order analyzer for second-order conversations
+        if (currentPath !== '/second-order') {
+          navigate('/second-order', { state: { conversation } });
+        } else {
+          // Already on second-order page, just load the conversation
+          onSelectConversation(conversation);
+        }
+      } else if (conversationType === 'llm-council') {
+        // Navigate to LLM Council for council conversations
+        if (currentPath !== '/llm-council') {
+          navigate('/llm-council', { state: { conversation } });
+        } else {
+          // Already on LLM Council page, just load the conversation
+          onSelectConversation(conversation);
+        }
       } else {
-        // Already on the correct page, just load the conversation
-        onSelectConversation(conversation);
+        // Unknown type - default to LLM Council if on that page, otherwise don't load
+        if (currentPath === '/llm-council') {
+          onSelectConversation(conversation);
+        } else {
+          console.warn('Unknown conversation type, not loading');
+        }
       }
       
       // Close sidebar on mobile after selection
@@ -361,7 +397,9 @@ const ConversationHistory = ({ onSelectConversation, onNewConversation, currentC
       </div>
     </>
   );
-};
+});
+
+ConversationHistory.displayName = 'ConversationHistory';
 
 export default ConversationHistory;
 

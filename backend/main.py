@@ -318,6 +318,72 @@ async def get_conversation(
     return conversation
 
 
+class UpdateTitleRequest(BaseModel):
+    """Request to update conversation title."""
+    title: str = Field(..., min_length=1, max_length=200, description="New title for the conversation")
+
+
+@app.put("/api/conversations/{conversation_id}/title")
+async def update_conversation_title(
+    conversation_id: str,
+    request: UpdateTitleRequest,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
+    """Update the title of a conversation."""
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Verify the conversation belongs to the current user
+    if conversation.get("user_id") and conversation["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    storage.update_conversation_title(conversation_id, request.title)
+    return {"message": "Title updated successfully"}
+
+
+@app.post("/api/conversations/{conversation_id}/user-message")
+async def add_user_message_endpoint(
+    conversation_id: str,
+    request: SendMessageRequest,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
+    """
+    Add a user message to a conversation without processing.
+    Used for saving messages without triggering LLM Council.
+    """
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    if conversation.get("user_id") and conversation["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    storage.add_user_message(conversation_id, request.content)
+    return {"message": "User message added successfully"}
+
+
+@app.post("/api/conversations/{conversation_id}/assistant-message")
+async def add_assistant_message_endpoint(
+    conversation_id: str,
+    request: SendMessageRequest,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
+    """
+    Add a raw assistant message to a conversation without processing.
+    Used for saving structured data like second-order effects.
+    """
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    if conversation.get("user_id") and conversation["user_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    storage.add_raw_assistant_message(conversation_id, request.content)
+    return {"message": "Assistant message added successfully"}
+
+
 @app.post("/api/conversations/{conversation_id}/message")
 async def send_message(
     conversation_id: str,
@@ -490,6 +556,46 @@ async def guest_message_stream(request: SendMessageRequest):
             "Connection": "keep-alive",
         }
     )
+
+
+# ==================== OpenRouter Chat Endpoint ====================
+
+class OpenRouterChatRequest(BaseModel):
+    """Request for OpenRouter chat completion."""
+    model: str = Field(..., description="Model identifier (e.g., 'anthropic/claude-sonnet-4.5')")
+    messages: List[Dict[str, str]] = Field(..., description="List of messages with 'role' and 'content'")
+
+@app.post("/api/openrouter/chat")
+async def openrouter_chat(
+    request: OpenRouterChatRequest,
+    current_user: Optional[Dict[str, Any]] = Depends(auth.get_optional_user)
+):
+    """
+    Direct OpenRouter chat completion endpoint.
+    Used by the Second-Order Analyzer for effect chain generation.
+    Works in both authenticated and guest modes.
+    """
+    from .openrouter import query_model
+    
+    try:
+        result = await query_model(
+            model=request.model,
+            messages=request.messages
+        )
+        
+        if result is None:
+            raise HTTPException(status_code=500, detail="Failed to get response from model")
+        
+        return {
+            "content": result.get('content', ''),
+            "reasoning_details": result.get('reasoning_details')
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.error(f"OpenRouter chat error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to complete chat: {str(e)}")
 
 
 # ==================== Second-Order Analysis Endpoints ====================

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, TrendingUp, AlertTriangle, Target, CheckCircle, Trophy, Network } from 'lucide-react';
-import { ArrowBack, ArrowForward } from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { api } from '../api';
+import { Plus, X, ChevronRight, Lightbulb, AlertTriangle, TrendingUp, Network } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
+import { api } from '../api';
 import './SecondOrderAnalyzer.css';
 
 const SecondOrderAnalyzer = () => {
@@ -14,308 +12,820 @@ const SecondOrderAnalyzer = () => {
   const location = useLocation();
   const { user, token, loading: authLoading, openLoginModal } = useAuth();
   const isGuest = !token;
+  const conversationHistoryRef = useRef(null);
 
   const [problem, setProblem] = useState('');
   const [solution, setSolution] = useState('');
-  const [stage, setStage] = useState('input');
-  const [loading, setLoading] = useState(false);
-  const [loadingStage, setLoadingStage] = useState(null); // Track which stage is currently loading
+  const [effects, setEffects] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [expandedEffects, setExpandedEffects] = useState(new Set());
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [conversationId, setConversationId] = useState(null);
-  const [notification, setNotification] = useState(null);
-  const stageRef = useRef(stage);
-  
-  // Stage data
-  const [firstOrderData, setFirstOrderData] = useState(null);
-  const [secondOrderData, setSecondOrderData] = useState(null);
-  const [thirdOrderData, setThirdOrderData] = useState(null);
-  const [recommendationsData, setRecommendationsData] = useState(null);
 
-  const reset = () => {
-    setProblem('');
-    setSolution('');
-    setStage('input');
-    setFirstOrderData(null);
-    setSecondOrderData(null);
-    setThirdOrderData(null);
-    setRecommendationsData(null);
-    setConversationId(null);
+  const generateEffectChain = async () => {
+    if (!problem.trim() || !solution.trim()) return;
+    
+    setIsGenerating(true);
     setError(null);
-    setLoading(false);
-    setLoadingStage(null);
-    setNotification(null);
+    setEffects([]);
+
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+      const url = `${apiBase}/api/openrouter/chat`;
+      
+      // Use OpenRouter API via backend
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-sonnet-4.5',
+          messages: [
+            {
+              role: 'user',
+              content: `You are analyzing second-order and third-order effects. Your response must be ONLY valid JSON with no additional text, explanations, or markdown formatting.
+
+Problem: ${problem}
+Solution: ${solution}
+
+Generate a comprehensive effect chain with:
+- 3-5 first-order effects (immediate, direct consequences)
+- For each first-order effect, generate 2-3 second-order effects (indirect consequences)
+- For key second-order effects, generate 1-2 third-order effects (long-term consequences)
+
+Each effect must be categorized as "positive", "negative", or "neutral".
+
+Your response must be ONLY this JSON structure with no other text before or after:
+{
+  "effects": [
+    {
+      "text": "Description of first order effect",
+      "type": "positive",
+      "children": [
+        {
+          "text": "Description of second order effect",
+          "type": "negative",
+          "children": [
+            {
+              "text": "Description of third order effect",
+              "type": "neutral"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown code blocks.`
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to generate effects';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorData.error?.message || errorMessage;
+        } catch (e) {
+          if (response.status === 404) {
+            errorMessage = `Endpoint not found. Please restart the backend server to register the new endpoint.`;
+      } else {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      
+      // Extract the text content from the response
+      let textContent = data.content || '';
+      
+      // Handle if content is an array (some APIs return array format)
+      if (Array.isArray(textContent)) {
+        textContent = textContent.map(item => 
+          typeof item === 'string' ? item : item.text || ''
+        ).join('');
+      }
+      
+      if (typeof textContent !== 'string') {
+        textContent = String(textContent || '');
+      }
+
+      console.log('Raw API Response:', textContent);
+
+      // Clean up the response - remove markdown code fences and any extra text
+      textContent = textContent.trim();
+      
+      // Remove markdown code blocks if present
+      textContent = textContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
+      // Try to find JSON object in the response - look for the outermost braces
+      let startIndex = textContent.indexOf('{');
+      let endIndex = textContent.lastIndexOf('}');
+      
+      if (startIndex === -1 || endIndex === -1) {
+        console.error('No JSON found in response');
+        throw new Error('Invalid response format - no JSON object found');
+      }
+      
+      let cleanJson = textContent.substring(startIndex, endIndex + 1);
+      
+      console.log('Extracted JSON:', cleanJson);
+      
+      // Parse the JSON
+      let parsed;
+      try {
+        parsed = JSON.parse(cleanJson);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Attempted to parse:', cleanJson);
+        throw new Error('Failed to parse the response. The AI may have returned invalid JSON. Please try again.');
+      }
+
+      if (!parsed.effects || !Array.isArray(parsed.effects)) {
+        console.error('Invalid structure:', parsed);
+        throw new Error('Response is missing the effects array');
+      }
+
+      if (parsed.effects.length === 0) {
+        throw new Error('No effects were generated. Please try again.');
+      }
+
+      // Transform the parsed data into our internal format with IDs
+      const addIds = (effectsList, order = 1, parentId = null) => {
+        return effectsList.map((effect, index) => ({
+          id: Date.now() + Math.random() + index,
+          text: effect.text,
+          type: effect.type || 'neutral',
+          order,
+          parent: parentId,
+          children: effect.children ? addIds(effect.children, order + 1, effect.id) : []
+        }));
+      };
+
+      const effectsWithIds = addIds(parsed.effects);
+      setEffects(effectsWithIds);
+
+      // Save conversation if authenticated
+      console.log('Save check - isGuest:', isGuest, 'hasToken:', !!token);
+      if (!isGuest && token) {
+        console.log('Attempting to save conversation...');
+        try {
+          let currentConversationId = conversationId;
+          if (!currentConversationId) {
+            const conversation = await api.createConversation(token);
+            currentConversationId = conversation.id;
+            setConversationId(currentConversationId);
+          }
+          
+          // Save user message with problem and solution
+          const userMessage = `Problem: ${problem}\n\nSolution: ${solution}`;
+          await api.addUserMessage(currentConversationId, userMessage, token);
+          
+          // Save assistant response with structured data
+          const assistantMessage = {
+            type: 'second_order_effects',
+            effects: parsed.effects,
+            problem: problem,
+            solution: solution
+          };
+          console.log('Saving assistant message with effects:', assistantMessage);
+          console.log('Conversation ID:', currentConversationId);
+          try {
+            await api.addAssistantMessage(currentConversationId, JSON.stringify(assistantMessage), token);
+            console.log('Assistant message saved successfully');
+          } catch (assistantError) {
+            console.error('Failed to save assistant message:', assistantError);
+            throw assistantError; // Re-throw to trigger outer catch
+          }
+          
+          // Update conversation title
+          try {
+            const title = problem.length > 50 ? problem.substring(0, 50) + '...' : problem;
+            await api.updateConversationTitle(currentConversationId, title, token);
+            // Refresh conversation list to show updated title
+            if (conversationHistoryRef.current?.loadConversations) {
+              conversationHistoryRef.current.loadConversations();
+            }
+          } catch (titleError) {
+            console.error('Failed to update title:', titleError);
+          }
+        } catch (saveError) {
+          console.error('Failed to save conversation:', saveError);
+          // Don't throw - analysis succeeded even if save failed
+        }
+      }
+
+    } catch (err) {
+      console.error('Error generating effects:', err);
+      setError(err.message || 'Failed to generate effect chain. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleNewConversation = () => {
-    reset();
+  const resetAnalysis = () => {
+    setProblem('');
+    setSolution('');
+    setEffects([]);
+    setError(null);
+    setExpandedEffects(new Set());
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setConversationId(null);
+  };
+
+  const toggleExpand = (effectId) => {
+    const clickedEffect = effects.find(e => e.id === effectId);
+    
+    if (clickedEffect && clickedEffect.order === 1) {
+      if (expandedEffects.has(effectId)) {
+        setExpandedEffects(new Set());
+      } else {
+        setExpandedEffects(new Set([effectId]));
+      }
+    } else {
+      const newExpanded = new Set(expandedEffects);
+      if (newExpanded.has(effectId)) {
+        newExpanded.delete(effectId);
+        effects.forEach(firstOrder => {
+          firstOrder.children?.forEach(secondOrder => {
+            if (secondOrder.id === effectId) {
+              secondOrder.children?.forEach(thirdOrder => {
+                newExpanded.delete(thirdOrder.id);
+              });
+            }
+          });
+        });
+      } else {
+        newExpanded.add(effectId);
+      }
+      setExpandedEffects(newExpanded);
+    }
   };
 
   const handleLoadConversation = async (conversation) => {
     try {
-      setConversationId(conversation.id);
+      setError(null);
+      setIsGenerating(false);
       
-      // Find user message (contains problem and solution)
-      const userMessage = conversation.messages?.find(msg => msg.role === 'user');
-      if (userMessage && userMessage.content) {
-        // Parse "Problem: ...\n\nSolution: ..." format
+      // If conversation doesn't have messages, fetch the full conversation
+      let fullConversation = conversation;
+      if (!conversation.messages || conversation.messages.length === 0) {
+        try {
+          fullConversation = await api.getConversation(conversation.id, token);
+        } catch (fetchError) {
+          console.error('Failed to fetch full conversation:', fetchError);
+          setError('Failed to load conversation details.');
+          return;
+        }
+      }
+      
+      setConversationId(fullConversation.id);
+      
+      // Find user message
+      const userMessage = fullConversation.messages?.find(msg => msg.role === 'user');
+      if (userMessage?.content) {
         const content = userMessage.content;
         const problemMatch = content.match(/Problem:\s*(.+?)(?:\n\nSolution:|$)/s);
         const solutionMatch = content.match(/Solution:\s*(.+?)$/s);
-        
-        if (problemMatch) {
-          setProblem(problemMatch[1].trim());
-        }
-        if (solutionMatch) {
-          setSolution(solutionMatch[1].trim());
+        if (problemMatch) setProblem(problemMatch[1].trim());
+        if (solutionMatch) setSolution(solutionMatch[1].trim());
+      }
+      
+      // Find assistant message with second-order effects
+      // Check all assistant messages, not just the first one
+      const assistantMessages = fullConversation.messages?.filter(
+        msg => msg.role === 'assistant' && msg.content
+      ) || [];
+      
+      console.log('Found', assistantMessages.length, 'assistant messages');
+      
+      let assistantMessage = null;
+      let parsed = null;
+      
+      // Try to find a message with second_order_effects
+      for (const msg of assistantMessages) {
+        try {
+          const testParsed = JSON.parse(msg.content);
+          if (testParsed.type === 'second_order_effects' && testParsed.effects && Array.isArray(testParsed.effects) && testParsed.effects.length > 0) {
+            assistantMessage = msg;
+            parsed = testParsed;
+            break;
+          }
+        } catch (e) {
+          // Not JSON or not our format, continue
         }
       }
       
-      // Find assistant message with second-order analysis
-      const assistantMessage = conversation.messages?.find(
-        msg => msg.role === 'assistant' && msg.type === 'second_order_analysis'
-      );
+      // If not found, try fallback: any message with effects array
+      if (!assistantMessage) {
+        for (const msg of assistantMessages) {
+          try {
+            const testParsed = JSON.parse(msg.content);
+            if (testParsed.effects && Array.isArray(testParsed.effects) && testParsed.effects.length > 0) {
+              assistantMessage = msg;
+              parsed = testParsed;
+              break;
+            }
+          } catch (e) {
+            // Not JSON or not our format, continue
+          }
+        }
+      }
       
-      if (assistantMessage) {
-        // Load stage data
-        if (assistantMessage.first_order) {
-          setFirstOrderData(assistantMessage.first_order);
-        }
-        if (assistantMessage.second_order) {
-          setSecondOrderData(assistantMessage.second_order);
-        }
-        if (assistantMessage.third_order) {
-          setThirdOrderData(assistantMessage.third_order);
-        }
-        if (assistantMessage.recommendations) {
-          setRecommendationsData(assistantMessage.recommendations);
-        }
+      if (assistantMessage?.content && parsed) {
+        console.log('Parsed assistant message:', { type: parsed.type, hasEffects: !!parsed.effects, effectsCount: parsed.effects?.length });
         
-        // Determine which stage to show (show the last completed stage)
-        if (assistantMessage.recommendations) {
-          setStage('stage4');
-        } else if (assistantMessage.third_order) {
-          setStage('stage3');
-        } else if (assistantMessage.second_order) {
-          setStage('stage2');
-        } else if (assistantMessage.first_order) {
-          setStage('stage1');
+        if (parsed.type === 'second_order_effects' && parsed.effects && Array.isArray(parsed.effects) && parsed.effects.length > 0) {
+          // Restore problem and solution if available (they might be more accurate)
+          if (parsed.problem) setProblem(parsed.problem);
+          if (parsed.solution) setSolution(parsed.solution);
+          
+          // Restore effects
+          const addIds = (effectsList, order = 1, parentId = null) => {
+            return effectsList.map((effect, index) => {
+              const effectId = Date.now() + Math.random() * 1000 + index;
+              return {
+                id: effectId,
+                text: effect.text,
+                type: effect.type || 'neutral',
+                order,
+                parent: parentId,
+                children: effect.children ? addIds(effect.children, order + 1, effectId) : []
+              };
+            });
+          };
+          const restoredEffects = addIds(parsed.effects);
+          console.log('Restored effects:', restoredEffects.length, 'effects');
+          setEffects(restoredEffects);
+          
+          // Reset view
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+          setExpandedEffects(new Set());
+        } else if (parsed.effects && Array.isArray(parsed.effects) && parsed.effects.length > 0) {
+          // Fallback for old format (just effects array without type field)
+          console.log('Found effects array without type field, using fallback format');
+          if (parsed.problem) setProblem(parsed.problem);
+          if (parsed.solution) setSolution(parsed.solution);
+          
+          const addIds = (effectsList, order = 1, parentId = null) => {
+            return effectsList.map((effect, index) => {
+              const effectId = Date.now() + Math.random() * 1000 + index;
+              return {
+                id: effectId,
+                text: effect.text,
+                type: effect.type || 'neutral',
+                order,
+                parent: parentId,
+                children: effect.children ? addIds(effect.children, order + 1, effectId) : []
+              };
+            });
+          };
+          const restoredEffects = addIds(parsed.effects);
+          console.log('Restored effects (fallback format):', restoredEffects.length, 'effects');
+          setEffects(restoredEffects);
+          
+          // Reset view
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+          setExpandedEffects(new Set());
         } else {
-          setStage('input');
+          console.warn('No valid effects found in conversation data:', parsed);
+          setError('No effects data found in this conversation.');
         }
       } else {
-        // No analysis yet, show input stage
-        setStage('input');
+        console.warn('No assistant message found in conversation');
+        // Check if there are any messages at all
+        if (fullConversation.messages && fullConversation.messages.length > 0) {
+          console.log('Available messages:', fullConversation.messages.map(m => ({ 
+            role: m.role, 
+            hasContent: !!m.content, 
+            contentType: typeof m.content,
+            contentPreview: m.content ? m.content.substring(0, 100) : 'none'
+          })));
+        }
+        setError('No analysis data found in this conversation.');
       }
-      
-      // Clear any errors and loading states
-      setError(null);
-      setLoading(false);
-      setLoadingStage(null);
-      setNotification(null);
-      
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       console.error('Error loading conversation:', error);
-      setError('Failed to load conversation. Please try again.');
+      setError('Failed to load conversation.');
     }
   };
 
-  const handleSubmit = async () => {
-    if (!problem.trim() || !solution.trim() || loading) return;
-
-    setError(null);
-    setLoading(true);
-    setStage('stage1');
-
-    const handleStreamEvent = async (eventType, event) => {
-      if (import.meta.env.DEV) {
-        console.log('Second-order stream event:', eventType, event);
-      }
-
-      switch (eventType) {
-        case 'stage1_start':
-          setStage('stage1');
-          setLoading(true);
-          setLoadingStage('stage1');
-          break;
-
-        case 'stage1_complete':
-          setFirstOrderData(event.data);
-          setLoading(false);
-          setLoadingStage(null);
-          // Don't change stage - keep user on current stage
-          break;
-
-        case 'stage2_start':
-          setLoading(true);
-          setLoadingStage('stage2');
-          // Don't change stage - keep user on current stage
-          break;
-
-        case 'stage2_complete':
-          setSecondOrderData(event.data);
-          setLoading(false);
-          setLoadingStage(null);
-          // Show notification if user is still on Stage 1
-          if (stageRef.current === 'stage1') {
-            setNotification({
-              message: 'Stage 2: Second-Order Impacts complete!',
-              stage: 'stage2',
-              type: 'success'
-            });
-          }
-          break;
-
-        case 'stage3_start':
-          setLoading(true);
-          setLoadingStage('stage3');
-          // Don't change stage - keep user on current stage
-          break;
-
-        case 'stage3_complete':
-          setThirdOrderData(event.data);
-          setLoading(false);
-          setLoadingStage(null);
-          // Show notification if user is still on Stage 1 or Stage 2
-          if (stageRef.current === 'stage1' || stageRef.current === 'stage2') {
-            setNotification({
-              message: 'Stage 3: Third-Order Impacts complete!',
-              stage: 'stage3',
-              type: 'success'
-            });
-          }
-          break;
-
-        case 'stage4_start':
-          setLoading(true);
-          setLoadingStage('stage4');
-          // Don't change stage - keep user on current stage
-          break;
-
-        case 'stage4_complete':
-          setRecommendationsData(event.data);
-          setLoading(false);
-          setLoadingStage(null);
-          // Show notification if user is still on Stage 1, 2, or 3
-          if (stageRef.current === 'stage1' || stageRef.current === 'stage2' || stageRef.current === 'stage3') {
-            setNotification({
-              message: 'Stage 4: Recommendations ready!',
-              stage: 'stage4',
-              type: 'success'
-            });
-          }
-          break;
-
-        case 'title_complete':
-          // Title updated
-          break;
-
-        case 'complete':
-          setLoading(false);
-          setLoadingStage(null);
-          break;
-
-        case 'error':
-          setError(event.message || 'Analysis failed');
-          setLoading(false);
-          setLoadingStage(null);
-          setNotification(null);
-          setStage('input');
-          break;
-
-        default:
-          if (import.meta.env.DEV) {
-            console.log('Unhandled event type:', eventType);
-          }
-      }
-    };
-
-    try {
-      if (isGuest) {
-        // Guest mode
-        await api.analyzeSecondOrderGuest(problem.trim(), solution.trim(), handleStreamEvent);
-      } else {
-        // Authenticated mode
-        let currentConversationId = conversationId;
-        if (!currentConversationId) {
-          const conversation = await api.createConversation(token);
-          currentConversationId = conversation.id;
-          setConversationId(currentConversationId);
-        }
-        await api.analyzeSecondOrderStream(
-          currentConversationId,
-          problem.trim(),
-          solution.trim(),
-          handleStreamEvent,
-          token
-        );
-      }
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      setError(error.message || 'Failed to analyze. Please check your connection and try again.');
-      setLoading(false);
-      setLoadingStage(null);
-      setNotification(null);
-      setStage('input');
-    }
-  };
-
-  // Check for conversation data in location state (when navigating from ConversationHistory)
   useEffect(() => {
     if (location.state?.conversation) {
       handleLoadConversation(location.state.conversation);
-      // Clear the state to prevent reloading on re-render
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // Keep stageRef in sync with stage state
-  useEffect(() => {
-    stageRef.current = stage;
-  }, [stage]);
+  // Radial flowchart component
+  const RadialFlowchart = () => {
+    const [hoveredEffect, setHoveredEffect] = useState(null);
+    const [cursorStyle, setCursorStyle] = useState('grab');
+    const containerRef = React.useRef(null);
+    const isPanningRef = React.useRef(false);
+    const panStartRef = React.useRef({ x: 0, y: 0 });
+    const isDraggingRef = React.useRef(false);
+    const panRef = React.useRef(pan);
+    const zoomRef = React.useRef(zoom);
 
-  // Auto-dismiss notification after 10 seconds
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => {
-        setNotification(null);
-      }, 10000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
+    // Keep refs in sync with state
+    React.useEffect(() => {
+      panRef.current = pan;
+      zoomRef.current = zoom;
+    }, [pan, zoom]);
 
-  // Handle notification click - navigate to next stage
-  const handleNotificationClick = (targetStage) => {
-    setNotification(null);
-    handleNavigateToStage(targetStage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const delta = e.deltaY * -0.001;
+      const newZoom = Math.min(Math.max(0.5, zoomRef.current + delta), 2);
+      setZoom(newZoom);
+    };
 
-  const handleNavigateToStage = (targetStage) => {
-    const canNavigateTo = (target) => {
-      switch (target) {
-        case 'stage1':
-          return firstOrderData !== null;
-        case 'stage2':
-          return secondOrderData !== null;
-        case 'stage3':
-          return thirdOrderData !== null;
-        case 'stage4':
-          return recommendationsData !== null;
-        default:
-          return true;
+    const handleMouseDown = (e) => {
+      // Check if clicking on an effect box or its children
+      const isEffectBox = e.target.closest('[data-effect-box]');
+      if (isEffectBox) {
+        isDraggingRef.current = false;
+        isPanningRef.current = false;
+        return;
+      }
+      
+      // Check if clicking on controls
+      if (e.target.closest('.zoom-controls') || e.target.closest('.flowchart-instructions')) {
+        return;
+      }
+      
+      if (e.button === 0) {
+        isDraggingRef.current = false;
+        isPanningRef.current = true;
+        panStartRef.current = { 
+          x: e.clientX - panRef.current.x, 
+          y: e.clientY - panRef.current.y 
+        };
+        setCursorStyle('grabbing');
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
 
-    if (canNavigateTo(targetStage)) {
-      setStage(targetStage);
-      // Clear notification when navigating to the notified stage
-      if (notification && notification.stage === targetStage) {
-        setNotification(null);
+    const handleMouseMove = (e) => {
+      if (isPanningRef.current) {
+        const currentX = e.clientX - panStartRef.current.x;
+        const currentY = e.clientY - panStartRef.current.y;
+        const deltaX = Math.abs(currentX - panRef.current.x);
+        const deltaY = Math.abs(currentY - panRef.current.y);
+        
+        // Only consider it dragging if moved more than 3 pixels
+        if (deltaX > 3 || deltaY > 3) {
+          isDraggingRef.current = true;
+        }
+        
+        if (isDraggingRef.current) {
+          setPan({ x: currentX, y: currentY });
+        }
+        e.preventDefault();
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    };
+
+    const handleMouseUp = (e) => {
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        setCursorStyle('grab');
+        // Small delay to prevent click from firing after drag
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 50);
+      }
+    };
+
+    const resetView = () => {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+    };
+
+    const getFirstOrderEffects = () => {
+      return effects.filter(e => e.order === 1);
+    };
+
+    const getNodePosition = (index, total, radius) => {
+      const angle = (index * 360) / total - 90;
+      const radian = (angle * Math.PI) / 180;
+      return {
+        x: radius * Math.cos(radian),
+        y: radius * Math.sin(radian),
+        angle
+      };
+    };
+
+    const getChildPosition = (parentPos, childIndex, totalChildren, radius) => {
+      const maxSpread = Math.min(90, totalChildren * 30);
+      const angleOffset = (childIndex - (totalChildren - 1) / 2) * (maxSpread / Math.max(totalChildren - 1, 1));
+      const childAngle = parentPos.angle + angleOffset;
+      const radian = (childAngle * Math.PI) / 180;
+      
+      return {
+        x: radius * Math.cos(radian),
+        y: radius * Math.sin(radian),
+        angle: childAngle
+      };
+    };
+
+    const firstOrderEffects = getFirstOrderEffects();
+
+    const typeColors = {
+      positive: 'from-emerald-500/30 to-emerald-600/20 border-emerald-400/60',
+      negative: 'from-rose-500/30 to-rose-600/20 border-rose-400/60',
+      neutral: 'from-amber-500/30 to-amber-600/20 border-amber-400/60'
+    };
+
+    const typeIconsLarge = {
+      positive: <TrendingUp size={20} className="text-emerald-400" />,
+      negative: <AlertTriangle size={20} className="text-rose-400" />,
+      neutral: <Lightbulb size={20} className="text-amber-400" />
+    };
+
+    const hasChildren = (effect) => {
+      return effect.children && effect.children.length > 0;
+    };
+
+    return (
+      <div className="radial-flowchart-container">
+        {/* Zoom Controls */}
+        <div className="zoom-controls">
+          <button onClick={() => setZoom(Math.min(2, zoom + 0.2))} title="Zoom In">+</button>
+          <button onClick={() => setZoom(Math.max(0.5, zoom - 0.2))} title="Zoom Out">−</button>
+          <button onClick={resetView} title="Reset View">Reset</button>
+          <div className="zoom-display">{Math.round(zoom * 100)}%</div>
+        </div>
+
+        {/* Instructions */}
+        <div className="flowchart-instructions">
+          <div className="instructions-title">Controls:</div>
+          <div>• Drag to pan</div>
+          <div>• Scroll to zoom</div>
+        </div>
+
+        {/* Chart Container */}
+        <div 
+          ref={containerRef}
+          className="flowchart-canvas"
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ 
+            cursor: cursorStyle
+          }}
+        >
+          <div
+            className="flowchart-transform"
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            }}
+          >
+            <div className="flowchart-inner">
+              <svg className="flowchart-svg">
+                {/* Draw concentric circles */}
+                <circle cx="50%" cy="50%" r="250" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                <circle cx="50%" cy="50%" r="480" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                <circle cx="50%" cy="50%" r="680" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                
+                {/* Draw connection lines */}
+                {firstOrderEffects.map((firstOrder, firstIndex) => {
+                  const firstPos = getNodePosition(firstIndex, firstOrderEffects.length, 250);
+                  
+                  return (
+                    <g key={`lines-${firstOrder.id}`}>
+                      <line
+                        x1="50%"
+                        y1="50%"
+                        x2={`calc(50% + ${firstPos.x}px)`}
+                        y2={`calc(50% + ${firstPos.y}px)`}
+                        stroke="rgba(6, 182, 212, 0.3)"
+                        strokeWidth="2"
+                      />
+                      
+                      {expandedEffects.has(firstOrder.id) && firstOrder.children?.map((secondOrder, secondIndex) => {
+                        const secondPos = getChildPosition(firstPos, secondIndex, firstOrder.children.length, 480);
+                        
+                        return (
+                          <g key={`line-${firstOrder.id}-${secondOrder.id}`}>
+                            <line
+                              x1={`calc(50% + ${firstPos.x}px)`}
+                              y1={`calc(50% + ${firstPos.y}px)`}
+                              x2={`calc(50% + ${secondPos.x}px)`}
+                              y2={`calc(50% + ${secondPos.y}px)`}
+                              stroke="rgba(6, 182, 212, 0.3)"
+                              strokeWidth="2"
+                              className="animate-draw-line"
+                            />
+                            
+                            {expandedEffects.has(secondOrder.id) && secondOrder.children?.map((thirdOrder, thirdIndex) => {
+                              const thirdPos = getChildPosition(secondPos, thirdIndex, secondOrder.children.length, 680);
+                              return (
+                                <line
+                                  key={`line-${secondOrder.id}-${thirdOrder.id}`}
+                                  x1={`calc(50% + ${secondPos.x}px)`}
+                                  y1={`calc(50% + ${secondPos.y}px)`}
+                                  x2={`calc(50% + ${thirdPos.x}px)`}
+                                  y2={`calc(50% + ${thirdPos.y}px)`}
+                                  stroke="rgba(6, 182, 212, 0.3)"
+                                  strokeWidth="2"
+                                  className="animate-draw-line"
+                                />
+                              );
+                            })}
+                          </g>
+                        );
+                      })}
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Center node - Problem/Solution */}
+              <div className="center-node">
+                <div className="center-card">
+                  <div className="center-label">Solution</div>
+                  <p className="center-text">{solution}</p>
+                </div>
+              </div>
+
+              {/* First order effects */}
+              {firstOrderEffects.map((effect, index) => {
+                const pos = getNodePosition(index, firstOrderEffects.length, 250);
+                const isExpanded = expandedEffects.has(effect.id);
+                const canExpand = hasChildren(effect);
+                
+                return (
+                  <div
+                    key={effect.id}
+                    className="effect-node first-order"
+                    style={{
+                      left: `calc(50% + ${pos.x}px)`,
+                      top: `calc(50% + ${pos.y}px)`,
+                    }}
+                    onMouseEnter={() => setHoveredEffect(effect.id)}
+                    onMouseLeave={() => setHoveredEffect(null)}
+                  >
+                    <div 
+                      data-effect-box="true"
+                      className={`effect-card ${typeColors[effect.type]} ${hoveredEffect === effect.id ? 'hovered' : ''} ${isExpanded ? 'expanded' : ''}`}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        isDraggingRef.current = false;
+                        isPanningRef.current = false;
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Only toggle if we didn't drag
+                        setTimeout(() => {
+                          if (!isDraggingRef.current && canExpand) {
+                            toggleExpand(effect.id);
+                          }
+                        }, 0);
+                      }}
+                    >
+                      <div className="effect-header">
+                        <div className="effect-icon-label">
+                          {typeIconsLarge[effect.type]}
+                          <div className="effect-order-label">1st Order</div>
+                        </div>
+                        {canExpand && (
+                          <ChevronRight 
+                            size={16} 
+                            className={`chevron ${isExpanded ? 'rotated' : ''}`}
+                          />
+                        )}
+                      </div>
+                      <p className="effect-text">{effect.text}</p>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Second order effects */}
+              {firstOrderEffects.map((firstOrder, firstIndex) => {
+                if (!expandedEffects.has(firstOrder.id)) return null;
+                
+                const firstPos = getNodePosition(firstIndex, firstOrderEffects.length, 250);
+                
+                return firstOrder.children?.map((secondOrder, secondIndex) => {
+                  const pos = getChildPosition(firstPos, secondIndex, firstOrder.children.length, 480);
+                  const isExpanded = expandedEffects.has(secondOrder.id);
+                  const canExpand = hasChildren(secondOrder);
+                  
+                  return (
+                    <div
+                      key={secondOrder.id}
+                      className="effect-node second-order"
+                      style={{
+                        left: `calc(50% + ${pos.x}px)`,
+                        top: `calc(50% + ${pos.y}px)`,
+                      }}
+                      onMouseEnter={() => setHoveredEffect(secondOrder.id)}
+                      onMouseLeave={() => setHoveredEffect(null)}
+                    >
+                      <div 
+                        data-effect-box="true"
+                        className={`effect-card ${typeColors[secondOrder.type]} ${hoveredEffect === secondOrder.id ? 'hovered' : ''} ${isExpanded ? 'expanded' : ''}`}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          isDraggingRef.current = false;
+                          isPanningRef.current = false;
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTimeout(() => {
+                            if (!isDraggingRef.current && canExpand) {
+                              toggleExpand(secondOrder.id);
+                            }
+                          }, 0);
+                        }}
+                      >
+                        <div className="effect-header">
+                          <div className="effect-icon-label">
+                            {typeIconsLarge[secondOrder.type]}
+                            <div className="effect-order-label">2nd Order</div>
+                          </div>
+                          {canExpand && (
+                            <ChevronRight 
+                              size={16} 
+                              className={`chevron ${isExpanded ? 'rotated' : ''}`}
+                            />
+                          )}
+                        </div>
+                        <p className="effect-text">{secondOrder.text}</p>
+                      </div>
+                    </div>
+                  );
+                });
+              })}
+
+              {/* Third order effects */}
+              {firstOrderEffects.map((firstOrder, firstIndex) => {
+                if (!expandedEffects.has(firstOrder.id)) return null;
+                
+                const firstPos = getNodePosition(firstIndex, firstOrderEffects.length, 250);
+                
+                return firstOrder.children?.map((secondOrder, secondIndex) => {
+                  if (!expandedEffects.has(secondOrder.id)) return null;
+                  
+                  const secondPos = getChildPosition(firstPos, secondIndex, firstOrder.children.length, 480);
+                  
+                  return secondOrder.children?.map((thirdOrder, thirdIndex) => {
+                    const pos = getChildPosition(secondPos, thirdIndex, secondOrder.children.length, 680);
+                    
+                    return (
+                      <div
+                        key={thirdOrder.id}
+                        className="effect-node third-order"
+                        style={{
+                          left: `calc(50% + ${pos.x}px)`,
+                          top: `calc(50% + ${pos.y}px)`,
+                        }}
+                        onMouseEnter={() => setHoveredEffect(thirdOrder.id)}
+                        onMouseLeave={() => setHoveredEffect(null)}
+                      >
+                        <div 
+                          data-effect-box="true"
+                          className={`effect-card ${typeColors[thirdOrder.type]} ${hoveredEffect === thirdOrder.id ? 'hovered' : ''}`}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            isDraggingRef.current = false;
+                            isPanningRef.current = false;
+                          }}
+                        >
+                          <div className="effect-header">
+                            <div className="effect-icon-label">
+                              {typeIconsLarge[thirdOrder.type]}
+                              <div className="effect-order-label">3rd Order</div>
+                            </div>
+                          </div>
+                          <p className="effect-text">{thirdOrder.text}</p>
+                        </div>
+                      </div>
+                    );
+                  });
+                });
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (authLoading) {
@@ -323,8 +833,7 @@ const SecondOrderAnalyzer = () => {
       <div className="second-order-container">
         <div className="second-order-content">
           <div className="loading-state">
-            <Loader2 className="spinner" />
-            <span className="loading-text">Loading...</span>
+            <span>Loading...</span>
           </div>
         </div>
       </div>
@@ -333,62 +842,27 @@ const SecondOrderAnalyzer = () => {
 
   return (
     <div className="second-order-container">
-      {/* Guest mode header */}
       {isGuest && (
         <div className="guest-header">
           <span className="guest-header-title">Second-Order Analyzer</span>
-          <button className="guest-signin-btn" onClick={openLoginModal}>
-            Sign in
-          </button>
+          <button className="guest-signin-btn" onClick={openLoginModal}>Sign in</button>
         </div>
       )}
 
-      {/* Show conversation history only for logged-in users */}
       {!isGuest && (
         <ConversationHistory
+          ref={conversationHistoryRef}
           onSelectConversation={handleLoadConversation}
-          onNewConversation={handleNewConversation}
+          onNewConversation={resetAnalysis}
           currentConversationId={conversationId}
         />
       )}
 
       <div className={`second-order-content ${isGuest ? 'guest-mode' : ''}`}>
-        {/* Stage completion notification */}
-        {notification && (
-          <div 
-            className="stage-notification"
-            onClick={() => handleNotificationClick(notification.stage)}
-          >
-            <div className="notification-content">
-              <Trophy className="notification-icon" />
-              <div className="notification-text">
-                <div className="notification-title">{notification.message}</div>
-                <div className="notification-subtitle">Click to view</div>
-              </div>
-            </div>
-            <button 
-              className="notification-close"
-              onClick={(e) => {
-                e.stopPropagation();
-                setNotification(null);
-              }}
-              aria-label="Close notification"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
         <div className="second-order-header">
-          <button
-            onClick={() => navigate('/')}
-            className="back-button"
-            title="Back to Home"
-            aria-label="Back to Home"
-          >
+          <button onClick={() => navigate('/')} className="back-button" title="Back to Home">
             <ArrowBack style={{ fontSize: 24 }} />
           </button>
-
           <div className="second-order-title-section">
             <div className="second-order-icon-large">
               <Network style={{ fontSize: 20 }} />
@@ -399,462 +873,138 @@ const SecondOrderAnalyzer = () => {
 
         {error && (
           <div className="error-message">
-            <strong>Error:</strong> {error}
+            <AlertTriangle size={20} />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Input Stage */}
-        {stage === 'input' && (
-          <div className="council-card">
-            <div className="input-section">
-              <label className="input-label">Problem Statement</label>
+        {/* Input Section */}
+        {effects.length === 0 && (
+          <div className="input-card">
+            <div className="input-group">
+              <label>Problem Statement</label>
               <textarea
                 value={problem}
                 onChange={(e) => setProblem(e.target.value)}
-                placeholder="Describe the problem you're trying to solve..."
-                className="question-input"
-                rows={6}
-                disabled={loading}
+                placeholder="e.g., Employee burnout is increasing and affecting productivity"
+                rows={3}
+                disabled={isGenerating}
               />
             </div>
 
-            <div className="input-section">
-              <label className="input-label">Proposed Solution</label>
+            <div className="input-group">
+              <label>Proposed Solution</label>
               <textarea
                 value={solution}
                 onChange={(e) => setSolution(e.target.value)}
-                placeholder="Describe your proposed solution or product decision..."
-                className="question-input"
-                rows={6}
-                disabled={loading}
+                placeholder="e.g., Implement a 4-day work week for all employees"
+                rows={3}
+                disabled={isGenerating}
               />
             </div>
 
             <button
-              onClick={handleSubmit}
-              disabled={loading || !problem.trim() || !solution.trim()}
-              className="submit-button"
+              onClick={generateEffectChain}
+              disabled={!problem.trim() || !solution.trim() || isGenerating}
+              className="analyze-button"
             >
-              {loading ? (
+              {isGenerating ? (
                 <>
-                  <Loader2 className="button-icon spinning" />
-                  Analyzing...
+                  <div className="spinner-small" />
+                  Analyzing Impacts...
                 </>
               ) : (
                 <>
-                  <Network style={{ fontSize: 20 }} />
+                  <Lightbulb size={20} />
                   Analyze Impacts
                 </>
               )}
             </button>
 
-            {/* Recommended Examples - Always visible below CTA */}
-            <div className="recommended-chips-container">
-              <span className="chips-label">Try:</span>
-              <div className="recommended-chips">
-                {[
-                  {
-                    problem: "Heavy traffic congestion on the main artery of a growing city.",
-                    solution: "Expand the 4-lane highway to 8 lanes."
-                  },
-                  {
-                    problem: "Management feels remote employees are becoming disengaged and distracted during meetings.",
-                    solution: "A strict \"cameras must always be on\" policy for every internal meeting."
-                  },
-                  {
-                    problem: "A social media platform is losing daily active users to competitors.",
-                    solution: "Change the feed algorithm to prioritize content that generates the highest number of comments and shares."
-                  }
-                ].map((example, index) => (
+            {/* Example Scenarios */}
+            {!isGenerating && (
+              <div className="examples-section">
+                <div className="examples-label">Try:</div>
+                <div className="examples-grid">
                   <button
-                    key={index}
-                    className="recommended-chip"
                     onClick={() => {
-                      setProblem(example.problem);
-                      setSolution(example.solution);
+                      setProblem('Heavy traffic congestion on the main artery of a growing city.');
+                      setSolution('Expand the 4-lane highway to 8 lanes.');
                     }}
-                    disabled={loading}
-                    type="button"
+                    className="example-card"
                   >
-                    <div className="chip-content">
-                      <div className="chip-line">
-                        <span className="chip-label">Problem:</span> {example.problem}
+                    <div className="example-line">
+                      <span className="example-label">Problem:</span> Heavy traffic congestion on the main artery of a growing city.
                       </div>
-                      <div className="chip-line">
-                        <span className="chip-label">Solution:</span> {example.solution}
-                      </div>
+                    <div className="example-line">
+                      <span className="example-label">Solution:</span> Expand the 4-lane highway to 8 lanes.
                     </div>
                   </button>
-                ))}
-              </div>
-            </div>
 
-          </div>
-        )}
-
-        {/* Stage 1: First-Order Impacts */}
-        {stage === 'stage1' && (
-          <div className="council-card">
-            {problem && (
-              <div className="question-display">
-                <div className="question-label">Analysis Context</div>
-                <div className="question-text">
-                  <strong>Problem:</strong> {problem}
-                  <br /><br />
-                  <strong>Solution:</strong> {solution}
-                </div>
-              </div>
-            )}
-
-            <div className="stage-navigation">
-              <div className="stage-nav-item active">
-                <TrendingUp className="stage-nav-icon" />
-                <span>Stage 1: First-Order Impacts</span>
-              </div>
-              {secondOrderData && (
                 <button
-                  onClick={() => handleNavigateToStage('stage2')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 2: Second-Order Impacts"
-                >
-                  <AlertTriangle className="stage-nav-icon" />
-                  <span>Stage 2: Second-Order</span>
-                </button>
-              )}
-              {thirdOrderData && (
-                <button
-                  onClick={() => handleNavigateToStage('stage3')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 3: Third-Order Impacts"
-                >
-                  <Target className="stage-nav-icon" />
-                  <span>Stage 3: Third-Order</span>
-                </button>
-              )}
-              {recommendationsData && (
-                <button
-                  onClick={() => handleNavigateToStage('stage4')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 4: Recommendations"
-                >
-                  <CheckCircle className="stage-nav-icon" />
-                  <span>Stage 4: Recommendations</span>
-                </button>
-              )}
-            </div>
-
-            <div className="stage-header">
-              <TrendingUp className="stage-icon" />
-              <h2 className="stage-title">Stage 1: First-Order Impacts</h2>
-            </div>
-
-            {!firstOrderData && loadingStage === 'stage1' ? (
-              <div className="loading-state">
-                <Loader2 className="spinner" />
-                <span className="loading-text">Analyzing immediate impacts...</span>
-              </div>
-            ) : firstOrderData ? (
-              <div className="analysis-content">
-                <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof firstOrderData === 'string' ? firstOrderData : (firstOrderData?.analysis || '')}</ReactMarkdown>
-                </div>
-                
-                {/* Loading indicator for Stage 2 - inline, like LLMCouncil */}
-                {loadingStage === 'stage2' && (
-                  <div className="stage-loading">
-                    <Loader2 className="spinner" />
-                    <span>Running Stage 2: Analyzing second-order impacts...</span>
-                  </div>
-                )}
-                
-                {/* Stage 2 content - appears after loading */}
-                {secondOrderData && (
-                  <div className="stage-content">
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleNavigateToStage('stage2')}
-                        className="primary-button"
-                      >
-                        View Second-Order Impacts
-                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Stage 2: Second-Order Impacts */}
-        {stage === 'stage2' && (
-          <div className="council-card">
-            {problem && (
-              <div className="question-display">
-                <div className="question-label">Analysis Context</div>
-                <div className="question-text">
-                  <strong>Problem:</strong> {problem}
-                  <br /><br />
-                  <strong>Solution:</strong> {solution}
-                </div>
-              </div>
-            )}
-
-            <div className="stage-navigation">
-              <button
-                onClick={() => handleNavigateToStage('stage1')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 1: First-Order Impacts"
-              >
-                <TrendingUp className="stage-nav-icon" />
-                <span>Stage 1: First-Order</span>
-              </button>
-              <div className="stage-nav-item active">
-                <AlertTriangle className="stage-nav-icon" />
-                <span>Stage 2: Second-Order Impacts</span>
-              </div>
-              {thirdOrderData && (
-                <button
-                  onClick={() => handleNavigateToStage('stage3')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 3: Third-Order Impacts"
-                >
-                  <Target className="stage-nav-icon" />
-                  <span>Stage 3: Third-Order</span>
-                </button>
-              )}
-              {recommendationsData && (
-                <button
-                  onClick={() => handleNavigateToStage('stage4')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 4: Recommendations"
-                >
-                  <CheckCircle className="stage-nav-icon" />
-                  <span>Stage 4: Recommendations</span>
-                </button>
-              )}
-            </div>
-
-            <div className="stage-header">
-              <AlertTriangle className="stage-icon" />
-              <h2 className="stage-title">Stage 2: Second-Order Impacts</h2>
-            </div>
-
-            {!secondOrderData && loadingStage === 'stage2' ? (
-              <div className="loading-state">
-                <Loader2 className="spinner" />
-                <span className="loading-text">Analyzing cascading consequences...</span>
-              </div>
-            ) : secondOrderData ? (
-              <div className="analysis-content">
-                <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof secondOrderData === 'string' ? secondOrderData : (secondOrderData?.analysis || '')}</ReactMarkdown>
-                </div>
-                
-                {/* Loading indicator for Stage 3 - inline, like LLMCouncil */}
-                {loadingStage === 'stage3' && (
-                  <div className="stage-loading">
-                    <Loader2 className="spinner" />
-                    <span>Running Stage 3: Analyzing third-order impacts...</span>
-                  </div>
-                )}
-                
-                {/* Stage 3 content - appears after loading */}
-                {thirdOrderData && (
-                  <div className="stage-content">
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleNavigateToStage('stage3')}
-                        className="primary-button"
-                      >
-                        View Third-Order Impacts
-                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Stage 3: Third-Order Impacts */}
-        {stage === 'stage3' && (
-          <div className="council-card">
-            {problem && (
-              <div className="question-display">
-                <div className="question-label">Analysis Context</div>
-                <div className="question-text">
-                  <strong>Problem:</strong> {problem}
-                  <br /><br />
-                  <strong>Solution:</strong> {solution}
-                </div>
-              </div>
-            )}
-
-            <div className="stage-navigation">
-              <button
-                onClick={() => handleNavigateToStage('stage1')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 1: First-Order Impacts"
-              >
-                <TrendingUp className="stage-nav-icon" />
-                <span>Stage 1: First-Order</span>
-              </button>
-              <button
-                onClick={() => handleNavigateToStage('stage2')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 2: Second-Order Impacts"
-              >
-                <AlertTriangle className="stage-nav-icon" />
-                <span>Stage 2: Second-Order</span>
-              </button>
-              <div className="stage-nav-item active">
-                <Target className="stage-nav-icon" />
-                <span>Stage 3: Third-Order Impacts</span>
-              </div>
-              {recommendationsData && (
-                <button
-                  onClick={() => handleNavigateToStage('stage4')}
-                  className="stage-nav-item clickable"
-                  title="Go to Stage 4: Recommendations"
-                >
-                  <CheckCircle className="stage-nav-icon" />
-                  <span>Stage 4: Recommendations</span>
-                </button>
-              )}
-            </div>
-
-            <div className="stage-header">
-              <Target className="stage-icon" />
-              <h2 className="stage-title">Stage 3: Third-Order Impacts</h2>
-            </div>
-
-            {!thirdOrderData && loadingStage === 'stage3' ? (
-              <div className="loading-state">
-                <Loader2 className="spinner" />
-                <span className="loading-text">Analyzing structural shifts...</span>
-              </div>
-            ) : thirdOrderData ? (
-              <div className="analysis-content">
-                <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof thirdOrderData === 'string' ? thirdOrderData : (thirdOrderData?.analysis || '')}</ReactMarkdown>
-                </div>
-                
-                {/* Loading indicator for Stage 4 - inline, like LLMCouncil */}
-                {loadingStage === 'stage4' && (
-                  <div className="stage-loading">
-                    <Loader2 className="spinner" />
-                    <span>Running Stage 4: Generating recommendations...</span>
-                  </div>
-                )}
-                
-                {/* Stage 4 content - appears after loading */}
-                {recommendationsData && (
-                  <div className="stage-content">
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleNavigateToStage('stage4')}
-                        className="primary-button"
-                      >
-                        View Recommendations
-                        <ArrowForward style={{ fontSize: 18, marginLeft: 8 }} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        {/* Stage 4: Recommendations */}
-        {stage === 'stage4' && (
-          <div className="council-card">
-            {problem && (
-              <div className="question-display">
-                <div className="question-label">Analysis Context</div>
-                <div className="question-text">
-                  <strong>Problem:</strong> {problem}
-                  <br /><br />
-                  <strong>Solution:</strong> {solution}
-                </div>
-              </div>
-            )}
-
-            <div className="stage-navigation">
-              <button
-                onClick={() => handleNavigateToStage('stage1')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 1: First-Order Impacts"
-              >
-                <TrendingUp className="stage-nav-icon" />
-                <span>Stage 1: First-Order</span>
-              </button>
-              <button
-                onClick={() => handleNavigateToStage('stage2')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 2: Second-Order Impacts"
-              >
-                <AlertTriangle className="stage-nav-icon" />
-                <span>Stage 2: Second-Order</span>
-              </button>
-              <button
-                onClick={() => handleNavigateToStage('stage3')}
-                className="stage-nav-item clickable"
-                title="Go to Stage 3: Third-Order Impacts"
-              >
-                <Target className="stage-nav-icon" />
-                <span>Stage 3: Third-Order</span>
-              </button>
-              <div className="stage-nav-item active">
-                <CheckCircle className="stage-nav-icon" />
-                <span>Stage 4: Recommendations</span>
-              </div>
-            </div>
-
-            <div className="stage-header">
-              <CheckCircle className="stage-icon" />
-              <h2 className="stage-title">Stage 4: Recommendations & Mitigation</h2>
-            </div>
-
-            {!recommendationsData && loadingStage === 'stage4' ? (
-              <div className="loading-state">
-                <Loader2 className="spinner" />
-                <span className="loading-text">Generating recommendations...</span>
-              </div>
-            ) : recommendationsData ? (
-              <div className="analysis-content">
-                <div className="analysis-text markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{typeof recommendationsData === 'string' ? recommendationsData : (recommendationsData?.analysis || '')}</ReactMarkdown>
-                </div>
-                <div className="action-buttons">
-                  <button
-                    onClick={reset}
-                    className="secondary-button"
+                    onClick={() => {
+                      setProblem('Management feels remote employees are becoming disengaged and distracted during meetings.');
+                      setSolution('A strict "cameras must always be on" policy for every internal meeting.');
+                    }}
+                    className="example-card"
                   >
+                    <div className="example-line">
+                      <span className="example-label">Problem:</span> Management feels remote employees are becoming disengaged and distracted during meetings.
+            </div>
+                    <div className="example-line">
+                      <span className="example-label">Solution:</span> A strict "cameras must always be on" policy for every internal meeting.
+            </div>
+                      </button>
+
+              <button
+                    onClick={() => {
+                      setProblem('A social media platform is losing daily active users to competitors.');
+                      setSolution('Change the feed algorithm to prioritize content that generates the highest number of comments and shares.');
+                    }}
+                    className="example-card"
+                  >
+                    <div className="example-line">
+                      <span className="example-label">Problem:</span> A social media platform is losing daily active users to competitors.
+              </div>
+                    <div className="example-line">
+                      <span className="example-label">Solution:</span> Change the feed algorithm to prioritize content that generates the highest number of comments and shares.
+            </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+          </div>
+        )}
+
+        {/* Effects Visualization */}
+        {effects.length > 0 && (
+          <div className="visualization-section">
+            <div className="context-card">
+              <div className="context-title">Analysis Context</div>
+              <div className="context-content">
+                <div>
+                  <strong>Problem:</strong> {problem}
+                </div>
+                <div>
+                  <strong>Solution:</strong> {solution}
+                </div>
+              </div>
+            </div>
+
+            <div className="visualization-header">
+              <div className="header-left">
+                <ChevronRight className="header-icon" size={24} />
+                <h2>Effect Chain Analysis</h2>
+            </div>
+              <button onClick={resetAnalysis} className="reset-button">
+                <X size={18} />
                     New Analysis
                   </button>
                 </div>
-              </div>
-            ) : null}
+            
+            <RadialFlowchart />
           </div>
         )}
-
-        <div className="footer">
-          <p>
-            Based on{' '}
-            <a 
-              href="https://docs.google.com/document/d/131dyBmW1EBl0hxbkahLthFNiRRLdK-o5CMz0EgF00u0/edit?tab=t.0" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              The Second-Order Toolkit: An Operational Manual for Strategic Impact Analysis in Product Management
-            </a>
-          </p>
-          <p>Analyzing cascading consequences and unintended outcomes</p>
-        </div>
       </div>
     </div>
   );

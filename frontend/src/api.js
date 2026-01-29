@@ -152,7 +152,7 @@ export const api = {
   },
 
   /**
-   * Send a message in a conversation.
+   * Send a message in a conversation (triggers LLM Council process).
    */
   async sendMessage(conversationId, content, token) {
     const response = await fetch(
@@ -166,6 +166,82 @@ export const api = {
     );
     if (!response.ok) {
       throw new Error('Failed to send message');
+    }
+    return response.json();
+  },
+
+  /**
+   * Add a user message without processing (for storing messages without triggering LLM Council).
+   */
+  async addUserMessage(conversationId, content, token) {
+    const response = await fetch(
+      `${API_BASE}/api/conversations/${conversationId}/user-message`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(token),
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to add user message');
+    }
+    return response.json();
+  },
+
+  /**
+   * Add a user message without processing (for storing messages without triggering LLM Council).
+   */
+  async addUserMessage(conversationId, content, token) {
+    const response = await fetch(
+      `${API_BASE}/api/conversations/${conversationId}/user-message`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(token),
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to add user message');
+    }
+    return response.json();
+  },
+
+  /**
+   * Add a raw assistant message without processing (for storing structured data).
+   */
+  async addAssistantMessage(conversationId, content, token) {
+    const response = await fetch(
+      `${API_BASE}/api/conversations/${conversationId}/assistant-message`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(token),
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to add assistant message');
+    }
+    return response.json();
+  },
+
+  /**
+   * Update conversation title.
+   */
+  async updateConversationTitle(conversationId, title, token) {
+    const response = await fetch(
+      `${API_BASE}/api/conversations/${conversationId}/title`,
+      {
+        method: 'PUT',
+        headers: getAuthHeaders(token),
+        credentials: 'include',
+        body: JSON.stringify({ title }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to update conversation title');
     }
     return response.json();
   },

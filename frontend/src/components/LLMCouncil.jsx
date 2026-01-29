@@ -334,7 +334,60 @@ const LLMCouncil = () => {
   };
 
   // Load a conversation from history
+  const detectConversationType = (conversation) => {
+    // Check messages to determine conversation type
+    if (!conversation.messages || conversation.messages.length === 0) {
+      return null;
+    }
+    
+    // Look for assistant messages with type indicators
+    for (const msg of conversation.messages) {
+      if (msg.role === 'assistant') {
+        // Second-order analysis has type field (old format)
+        if (msg.type === 'second_order_analysis') {
+          return 'second-order';
+        }
+        // Check content for new format (second_order_effects)
+        if (msg.content) {
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.type === 'second_order_effects' && parsed.effects) {
+              return 'second-order';
+            }
+          } catch (e) {
+            // Not JSON, continue checking
+          }
+        }
+        // LLM Council has stage1, stage2, stage3 fields (no type field)
+        if (msg.stage1 || msg.stage2 || msg.stage3) {
+          return 'llm-council';
+        }
+      }
+    }
+    
+    // If no assistant messages yet, check user message format
+    const userMessage = conversation.messages.find(msg => msg.role === 'user');
+    if (userMessage) {
+      const content = userMessage.content || '';
+      // Second-order has "Problem:" and "Solution:" format
+      if (content.includes('Problem:') && content.includes('Solution:')) {
+        return 'second-order';
+      }
+      // Otherwise assume LLM Council (regular question format)
+      return 'llm-council';
+    }
+    
+    return null;
+  };
+
   const handleLoadConversation = (conversation) => {
+    // Don't load second-order conversations in LLM Council
+    const conversationType = detectConversationType(conversation);
+    if (conversationType === 'second-order') {
+      console.warn('Attempted to load second-order conversation in LLM Council, redirecting...');
+      navigate('/second-order', { state: { conversation } });
+      return;
+    }
     setConversationId(conversation.id);
     
     // Find the last message with all stages
