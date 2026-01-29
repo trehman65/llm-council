@@ -454,16 +454,16 @@ const SecondOrderAnalyzer = () => {
               <div className="recommended-chips">
                 {[
                   {
-                    problem: "Users complain about 5-second page load times, causing 30% bounce rate on mobile",
-                    solution: "Implement aggressive caching, CDN, and lazy loading to reduce load times to under 2 seconds"
+                    problem: "Heavy traffic congestion on the main artery of a growing city.",
+                    solution: "Expand the 4-lane highway to 8 lanes."
                   },
                   {
-                    problem: "Freemium conversion rate stuck at 2% despite 50K free users, need to hit 5% to be profitable",
-                    solution: "Add paywall after 10 document exports and limit free tier to 5 projects instead of unlimited"
+                    problem: "Management feels remote employees are becoming disengaged and distracted during meetings.",
+                    solution: "A strict \"cameras must always be on\" policy for every internal meeting."
                   },
                   {
-                    problem: "Competitors launched AI features and we're losing enterprise deals, sales team reports 40% of lost deals mention AI",
-                    solution: "Build AI-powered auto-complete feature that learns from user patterns and suggests next actions"
+                    problem: "A social media platform is losing daily active users to competitors.",
+                    solution: "Change the feed algorithm to prioritize content that generates the highest number of comments and shares."
                   }
                 ].map((example, index) => (
                   <button

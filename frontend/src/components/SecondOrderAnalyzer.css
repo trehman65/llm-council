@@ -251,8 +251,8 @@
 }
 
 .chips-label {
-  font-size: var(--text-xs);
-  color: #94a3b8;
+  font-size: var(--text-sm);
+  color: #cbd5e1;
   font-weight: 500;
   flex-shrink: 0;
 }
@@ -265,12 +265,12 @@
 }
 
 .recommended-chip {
-  padding: 10px 14px;
+  padding: 14px 18px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(71, 85, 105, 0.4);
   border-radius: 16px;
-  color: #cbd5e1;
-  font-size: var(--text-xs);
+  color: #e2e8f0;
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
@@ -279,22 +279,23 @@
   text-align: left;
   max-width: 100%;
   width: 100%;
+  line-height: 1.5;
 }
 
 .chip-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .chip-line {
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .recommended-chip:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.6);
-  color: #e2e8f0;
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.7);
+  color: #f1f5f9;
   transform: translateY(-1px);
 }
 
@@ -309,7 +310,8 @@
 
 .chip-label {
   color: #60a5fa;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: var(--text-sm);
 }
 
 .submit-button {
@@ -669,7 +671,7 @@
   }
 
   .chips-label {
-    font-size: 11px;
+    font-size: var(--text-sm);
   }
 
   .recommended-chips {
@@ -678,11 +680,11 @@
   }
 
   .recommended-chip {
-    padding: 5px 10px;
-    font-size: 11px;
+    padding: 12px 14px;
+    font-size: var(--text-sm);
     border-radius: 12px;
     white-space: normal;
-    line-height: 1.3;
+    line-height: 1.5;
   }
 
   .second-order-header {

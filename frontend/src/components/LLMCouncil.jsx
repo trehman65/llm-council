@@ -628,9 +628,9 @@ const LLMCouncil = () => {
               <span className="chips-label">Try:</span>
               <div className="recommended-chips">
                 {[
-                  "Should we build AI-powered search or improve our existing filters?",
-                  "Is it better to launch a freemium tier or keep our paid-only model?",
-                  "Should we prioritize mobile app development or enhance our web platform?"
+                  "Should we open-source frontier-level AI models to ensure transparency, or keep them closed to prevent bad actors from weaponizing them?",
+                  "Should an AI's decision be legally binding in high-stakes fields (like medicine or law) if its logic cannot be fully explained to a human?",
+                  "Should companies be legally required to pay a \"transition tax\" for every human role replaced by automation to fund societal retraining?"
                 ].map((exampleQuestion, index) => (
                   <button
                     key={index}
