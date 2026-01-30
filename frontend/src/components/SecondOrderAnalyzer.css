@@ -288,6 +288,7 @@
   font-weight: 600;
   color: white;
   margin: 0;
+  white-space: nowrap;
 }
 
 .reset-button {
@@ -337,6 +338,8 @@
   border-radius: 999px;
   backdrop-filter: blur(10px);
   box-shadow: 0 16px 32px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  max-width: calc(100vw - 2rem);
+  overflow: hidden;
 }
 
 .zoom-controls button {
@@ -706,6 +709,26 @@
     right: auto;
     left: 50%;
     transform: translateX(-50%) scale(0.95);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .zoom-controls button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .pan-controls button {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .zoom-display {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.65rem;
   }
 
   .flowchart-instructions {

@@ -14,13 +14,21 @@ const SecondOrderAnalyzer = () => {
   const isGuest = !token;
   const conversationHistoryRef = useRef(null);
 
+  const getInitialZoom = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      return 0.7;
+    }
+    return 1;
+  };
+
   const [problem, setProblem] = useState('');
   const [solution, setSolution] = useState('');
   const [effects, setEffects] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [expandedEffects, setExpandedEffects] = useState(new Set());
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(getInitialZoom);
+  const [defaultZoom] = useState(getInitialZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [conversationId, setConversationId] = useState(null);
 
@@ -247,7 +255,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
     setEffects([]);
     setError(null);
     setExpandedEffects(new Set());
-    setZoom(1);
+    setZoom(defaultZoom);
     setPan({ x: 0, y: 0 });
     setConversationId(null);
   };
@@ -378,7 +386,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           setEffects(restoredEffects);
           
           // Reset view
-          setZoom(1);
+          setZoom(defaultZoom);
           setPan({ x: 0, y: 0 });
           setExpandedEffects(new Set());
         } else if (parsed.effects && Array.isArray(parsed.effects) && parsed.effects.length > 0) {
@@ -405,7 +413,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           setEffects(restoredEffects);
           
           // Reset view
-          setZoom(1);
+          setZoom(defaultZoom);
           setPan({ x: 0, y: 0 });
           setExpandedEffects(new Set());
       } else {
@@ -448,12 +456,35 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
     const isDraggingRef = React.useRef(false);
     const panRef = React.useRef(pan);
     const zoomRef = React.useRef(zoom);
+    const [canvasSize, setCanvasSize] = useState({ w: 1200, h: 1200 });
 
     // Keep refs in sync with state
     React.useEffect(() => {
       panRef.current = pan;
       zoomRef.current = zoom;
     }, [pan, zoom]);
+
+    React.useEffect(() => {
+      const updateSize = () => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const width = Math.max(1200, Math.round(rect.width));
+        const height = Math.max(1200, Math.round(rect.height));
+        setCanvasSize({ w: width, h: height });
+      };
+
+      updateSize();
+
+      let resizeObserver;
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(updateSize);
+        resizeObserver.observe(containerRef.current);
+      }
+
+      return () => {
+        if (resizeObserver) resizeObserver.disconnect();
+      };
+    }, []);
 
     const nudgePan = (dx, dy) => {
       setPan({
@@ -520,7 +551,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
     };
 
     const resetView = () => {
-      setZoom(1);
+      setZoom(defaultZoom);
       setPan({ x: 0, y: 0 });
       setExpandedEffects(new Set());
     };
@@ -553,6 +584,8 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
     };
 
     const firstOrderEffects = getFirstOrderEffects();
+    const centerX = canvasSize.w / 2;
+    const centerY = canvasSize.h / 2;
 
     const typeColors = {
       positive: 'from-emerald-500/30 to-emerald-600/20 border-emerald-400/60',
@@ -605,12 +638,17 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             }}
           >
-            <div className="flowchart-inner">
-              <svg className="flowchart-svg">
+            <div className="flowchart-inner" style={{ width: canvasSize.w, height: canvasSize.h }}>
+              <svg
+                className="flowchart-svg"
+                width={canvasSize.w}
+                height={canvasSize.h}
+                viewBox={`0 0 ${canvasSize.w} ${canvasSize.h}`}
+              >
                 {/* Draw concentric circles */}
-                <circle cx="50%" cy="50%" r="250" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
-                <circle cx="50%" cy="50%" r="480" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
-                <circle cx="50%" cy="50%" r="680" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                <circle cx={centerX} cy={centerY} r="250" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                <circle cx={centerX} cy={centerY} r="480" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
+                <circle cx={centerX} cy={centerY} r="680" fill="none" stroke="rgba(6, 182, 212, 0.1)" strokeWidth="1" strokeDasharray="5,5" />
                 
                 {/* Draw connection lines */}
                 {firstOrderEffects.map((firstOrder, firstIndex) => {
@@ -619,10 +657,10 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                   return (
                     <g key={`lines-${firstOrder.id}`}>
                       <line
-                        x1="50%"
-                        y1="50%"
-                        x2={`calc(50% + ${firstPos.x}px)`}
-                        y2={`calc(50% + ${firstPos.y}px)`}
+                        x1={centerX}
+                        y1={centerY}
+                        x2={centerX + firstPos.x}
+                        y2={centerY + firstPos.y}
                         stroke="rgba(6, 182, 212, 0.3)"
                         strokeWidth="2"
                       />
@@ -633,10 +671,10 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                         return (
                           <g key={`line-${firstOrder.id}-${secondOrder.id}`}>
                             <line
-                              x1={`calc(50% + ${firstPos.x}px)`}
-                              y1={`calc(50% + ${firstPos.y}px)`}
-                              x2={`calc(50% + ${secondPos.x}px)`}
-                              y2={`calc(50% + ${secondPos.y}px)`}
+                              x1={centerX + firstPos.x}
+                              y1={centerY + firstPos.y}
+                              x2={centerX + secondPos.x}
+                              y2={centerY + secondPos.y}
                               stroke="rgba(6, 182, 212, 0.3)"
                               strokeWidth="2"
                               className="animate-draw-line"
@@ -647,10 +685,10 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                               return (
                                 <line
                                   key={`line-${secondOrder.id}-${thirdOrder.id}`}
-                                  x1={`calc(50% + ${secondPos.x}px)`}
-                                  y1={`calc(50% + ${secondPos.y}px)`}
-                                  x2={`calc(50% + ${thirdPos.x}px)`}
-                                  y2={`calc(50% + ${thirdPos.y}px)`}
+                                  x1={centerX + secondPos.x}
+                                  y1={centerY + secondPos.y}
+                                  x2={centerX + thirdPos.x}
+                                  y2={centerY + thirdPos.y}
                                   stroke="rgba(6, 182, 212, 0.3)"
                                   strokeWidth="2"
                                   className="animate-draw-line"
@@ -666,7 +704,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
               </svg>
 
               {/* Center node - Problem/Solution */}
-              <div className="center-node">
+              <div className="center-node" style={{ left: `${centerX}px`, top: `${centerY}px` }}>
                 <div className="center-card">
                   <div className="center-label">Solution</div>
                   <p className="center-text">{solution}</p>
@@ -684,8 +722,8 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                     key={effect.id}
                     className="effect-node first-order"
                     style={{
-                      left: `calc(50% + ${pos.x}px)`,
-                      top: `calc(50% + ${pos.y}px)`,
+                      left: `${centerX + pos.x}px`,
+                      top: `${centerY + pos.y}px`,
                     }}
                     onMouseEnter={() => setHoveredEffect(effect.id)}
                     onMouseLeave={() => setHoveredEffect(null)}
@@ -742,8 +780,8 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                       key={secondOrder.id}
                       className="effect-node second-order"
                       style={{
-                        left: `calc(50% + ${pos.x}px)`,
-                        top: `calc(50% + ${pos.y}px)`,
+                        left: `${centerX + pos.x}px`,
+                        top: `${centerY + pos.y}px`,
                       }}
                       onMouseEnter={() => setHoveredEffect(secondOrder.id)}
                       onMouseLeave={() => setHoveredEffect(null)}
@@ -803,8 +841,8 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
                         key={thirdOrder.id}
                         className="effect-node third-order"
                         style={{
-                          left: `calc(50% + ${pos.x}px)`,
-                          top: `calc(50% + ${pos.y}px)`,
+                          left: `${centerX + pos.x}px`,
+                          top: `${centerY + pos.y}px`,
                         }}
                         onMouseEnter={() => setHoveredEffect(thirdOrder.id)}
                         onMouseLeave={() => setHoveredEffect(null)}
