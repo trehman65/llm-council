@@ -209,10 +209,20 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           // Update conversation title
           try {
             const title = problem.length > 50 ? problem.substring(0, 50) + '...' : problem;
-            await api.updateConversationTitle(currentConversationId, title, token);
-            // Refresh conversation list to show updated title
+            console.log('Updating conversation title to:', title, 'for conversation:', currentConversationId);
+            const titleResponse = await api.updateConversationTitle(currentConversationId, title, token);
+            console.log('Title update response:', titleResponse);
+            
+            // Small delay to ensure backend has saved the title
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Refresh conversation list to show updated title (force fresh fetch to bypass cache)
+            console.log('Refreshing conversation list...');
             if (conversationHistoryRef.current?.loadConversations) {
-              conversationHistoryRef.current.loadConversations();
+              await conversationHistoryRef.current.loadConversations(true);
+              console.log('Conversation list refreshed');
+            } else {
+              console.error('conversationHistoryRef.current is null or loadConversations not available');
             }
           } catch (titleError) {
             console.error('Failed to update title:', titleError);
@@ -318,7 +328,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           if (testParsed.type === 'second_order_effects' && testParsed.effects && Array.isArray(testParsed.effects) && testParsed.effects.length > 0) {
             assistantMessage = msg;
             parsed = testParsed;
-            break;
+          break;
           }
         } catch (e) {
           // Not JSON or not our format, continue
@@ -398,7 +408,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           setZoom(1);
           setPan({ x: 0, y: 0 });
           setExpandedEffects(new Set());
-        } else {
+      } else {
           console.warn('No valid effects found in conversation data:', parsed);
           setError('No effects data found in this conversation.');
         }

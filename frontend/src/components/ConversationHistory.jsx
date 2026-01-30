@@ -46,10 +46,18 @@ const ConversationHistory = forwardRef(({ onSelectConversation, onNewConversatio
   }));
 
   // Refresh conversations when a new one is created or when navigating
-  const loadConversations = async () => {
+  const loadConversations = async (forceFresh = false) => {
     try {
       setLoading(true);
       setError(null);
+      
+      // If forceFresh is true, skip cache and clear it
+      if (forceFresh) {
+        localStorage.removeItem('llm_council_conversations');
+        localStorage.removeItem('llm_council_conversations_time');
+        await fetchConversations(false);
+        return;
+      }
       
       // Clear old cache to ensure we get first_question field
       // Try localStorage cache first
