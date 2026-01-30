@@ -21,9 +21,22 @@ os.makedirs(SESSIONS_DIR, exist_ok=True)
 security = HTTPBearer(auto_error=False)
 
 
+def sanitize_user_id(user_id: str) -> str:
+    """Sanitize user ID to prevent path traversal."""
+    import re
+    if not user_id or not isinstance(user_id, str):
+        raise ValueError("Invalid user ID")
+    # Only allow alphanumeric, hyphens, underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9\-_]', '', user_id)
+    if not sanitized or len(sanitized) > 100:
+        raise ValueError("Invalid user ID format")
+    return sanitized
+
+
 def get_user_file_path(user_id: str) -> str:
     """Get the file path for a user's data."""
-    return os.path.join(USERS_DIR, f"{user_id}.json")
+    safe_id = sanitize_user_id(user_id)
+    return os.path.join(USERS_DIR, f"{safe_id}.json")
 
 
 def get_session_file_path(session_id: str) -> str:

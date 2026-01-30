@@ -94,6 +94,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Content Security Policy
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' data:; "
+            "connect-src 'self' https://openrouter.ai"
+        )
         # HSTS - only in production (HTTPS)
         if os.getenv("ENVIRONMENT") == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -102,9 +111,56 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 
+# Rate limiting middleware
+from collections import defaultdict
+from time import time
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Simple rate limiting middleware."""
+    def __init__(self, app, requests_per_minute: int = 60):
+        super().__init__(app)
+        self.requests_per_minute = requests_per_minute
+        self.requests = defaultdict(list)
+    
+    async def dispatch(self, request: StarletteRequest, call_next):
+        # Get client IP
+        client_ip = request.client.host if request.client else "unknown"
+        
+        # Clean old requests
+        now = time()
+        self.requests[client_ip] = [
+            req_time for req_time in self.requests[client_ip]
+            if now - req_time < 60
+        ]
+        
+        # Check rate limit
+        if len(self.requests[client_ip]) >= self.requests_per_minute:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded. Please try again later."}
+            )
+        
+        # Add current request
+        self.requests[client_ip].append(now)
+        
+        return await call_next(request)
+
+
+# Add rate limiting (100 requests per minute per IP)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=100)
+
+
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
     content: str = Field(..., min_length=1, max_length=10000, description="Message content (1-10000 characters)")
+    
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Content cannot be empty")
+        return v.strip()
     
     @field_validator('content')
     @classmethod

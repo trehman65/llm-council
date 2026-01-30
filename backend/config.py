@@ -39,7 +39,17 @@ OAUTH_REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:8001/api/
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Secret key for JWT encoding - generate a random one if not set
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # In production, SECRET_KEY must be explicitly set
+    if os.getenv("ENVIRONMENT") == "production" or os.getenv("PORT"):
+        raise ValueError(
+            "SECRET_KEY environment variable must be set in production. "
+            "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+        )
+    # Development fallback
+    print("⚠️ WARNING: Using auto-generated SECRET_KEY. Set SECRET_KEY env var for production.")
+    SECRET_KEY = secrets.token_urlsafe(32)
 
 # JWT token expiration time in hours
 TOKEN_EXPIRATION_HOURS = 24

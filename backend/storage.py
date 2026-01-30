@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -14,9 +15,30 @@ def ensure_data_dir():
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
+def sanitize_id(id_value: str) -> str:
+    """
+    Sanitize an ID to prevent path traversal attacks.
+    Only allows alphanumeric characters, hyphens, and underscores.
+    """
+    if not id_value or not isinstance(id_value, str):
+        raise ValueError("Invalid ID: must be a non-empty string")
+    
+    # Remove any path separators and dangerous characters
+    sanitized = re.sub(r'[^a-zA-Z0-9\-_]', '', id_value)
+    
+    if not sanitized or sanitized != id_value:
+        raise ValueError(f"Invalid ID format: {id_value}")
+    
+    if len(sanitized) > 100:
+        raise ValueError("ID too long")
+    
+    return sanitized
+
+
 def get_conversation_path(conversation_id: str) -> str:
     """Get the file path for a conversation."""
-    return os.path.join(DATA_DIR, f"{conversation_id}.json")
+    safe_id = sanitize_id(conversation_id)
+    return os.path.join(DATA_DIR, f"{safe_id}.json")
 
 
 def create_conversation(conversation_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
