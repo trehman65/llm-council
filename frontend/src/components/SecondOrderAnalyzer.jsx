@@ -455,11 +455,11 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
       zoomRef.current = zoom;
     }, [pan, zoom]);
 
-    const handleWheel = (e) => {
-      e.preventDefault();
-      const delta = e.deltaY * -0.001;
-      const newZoom = Math.min(Math.max(0.5, zoomRef.current + delta), 2);
-      setZoom(newZoom);
+    const nudgePan = (dx, dy) => {
+      setPan({
+        x: panRef.current.x + dx,
+        y: panRef.current.y + dy
+      });
     };
 
     const handleMouseDown = (e) => {
@@ -522,6 +522,7 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
     const resetView = () => {
       setZoom(1);
       setPan({ x: 0, y: 0 });
+      setExpandedEffects(new Set());
     };
 
     const getFirstOrderEffects = () => {
@@ -577,20 +578,19 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
           <button onClick={() => setZoom(Math.max(0.5, zoom - 0.2))} title="Zoom Out">−</button>
           <button onClick={resetView} title="Reset View">Reset</button>
           <div className="zoom-display">{Math.round(zoom * 100)}%</div>
-        </div>
-
-        {/* Instructions */}
-        <div className="flowchart-instructions">
-          <div className="instructions-title">Controls:</div>
-          <div>• Drag to pan</div>
-          <div>• Scroll to zoom</div>
+          <div className="control-divider" />
+          <div className="pan-controls">
+            <button onClick={() => nudgePan(80, 0)} title="Pan Left" aria-label="Pan left">←</button>
+            <button onClick={() => nudgePan(0, 80)} title="Pan Up" aria-label="Pan up">↑</button>
+            <button onClick={() => nudgePan(0, -80)} title="Pan Down" aria-label="Pan down">↓</button>
+            <button onClick={() => nudgePan(-80, 0)} title="Pan Right" aria-label="Pan right">→</button>
+          </div>
         </div>
 
         {/* Chart Container */}
         <div 
           ref={containerRef}
           className="flowchart-canvas"
-          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
