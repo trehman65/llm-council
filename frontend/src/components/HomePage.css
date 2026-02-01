@@ -4,7 +4,7 @@
   color: white;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-family: inherit;
 }
 
 .homepage-content {
@@ -217,6 +217,18 @@
 .tool-card:hover .second-order-icon {
   background: rgba(59, 130, 246, 0.3);
   border-color: rgba(59, 130, 246, 0.7);
+  transform: scale(1.05);
+}
+
+.project-manager-icon {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+}
+
+.tool-card:hover .project-manager-icon {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.7);
   transform: scale(1.05);
 }
 

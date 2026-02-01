@@ -13,7 +13,7 @@
 .chairman-label {
   color: #2d8a2d;
   font-size: 12px;
-  font-family: monospace;
+  font-family: inherit;
   margin-bottom: 12px;
   font-weight: 600;
 }

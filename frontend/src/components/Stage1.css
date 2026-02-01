@@ -56,7 +56,7 @@
   color: #888;
   font-size: 12px;
   margin-bottom: 12px;
-  font-family: monospace;
+  font-family: inherit;
 }
 
 .response-text {

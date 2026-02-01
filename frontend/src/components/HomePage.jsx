@@ -1,59 +1,22 @@
 import { useNavigate } from 'react-router-dom';
-import { Groups, ArrowForward, Logout } from '@mui/icons-material';
+import { Groups, ArrowForward, ViewKanban } from '@mui/icons-material';
 import { Network } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import './HomePage.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { user, loading, openLoginModal, logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-  };
-
   const handleSelectTool = (tool) => {
     if (tool === 'llm-council') {
       navigate('/llm-council');
     } else if (tool === 'second-order') {
       navigate('/second-order');
+    } else if (tool === 'project-manager') {
+      navigate('/project-manager');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="homepage-loading">
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="homepage-container">
-      {/* Top Navigation Bar - Full Width */}
-      <div className="homepage-navbar">
-        <div className="navbar-content">
-          <div className="navbar-brand">
-            <Groups className="brand-icon" />
-            <span className="brand-name">Better PM</span>
-          </div>
-          <div className="navbar-actions">
-            {user ? (
-              <div className="navbar-user-section">
-                <span className="navbar-user">{user.name || user.email}</span>
-                <button className="navbar-logout-btn" onClick={handleLogout} title="Log out">
-                  <Logout style={{ fontSize: 18 }} />
-                </button>
-              </div>
-            ) : (
-              <button className="navbar-signin-btn" onClick={openLoginModal}>
-                Sign in
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="homepage-content">
         <div className="homepage-main">
@@ -100,6 +63,24 @@ const HomePage = () => {
                 <h3 className="tool-title">Second-Order Effects</h3>
                 <p className="tool-description">
                   Analyze cascading consequences and unintended outcomes of product decisions
+                </p>
+                <div className="tool-link">
+                  Open <ArrowForward style={{ fontSize: 16, marginLeft: 4 }} />
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className="tool-card"
+              onClick={() => handleSelectTool('project-manager')}
+            >
+              <div className="tool-icon-wrapper project-manager-icon">
+                <ViewKanban style={{ fontSize: 24 }} />
+              </div>
+              <div className="tool-content">
+                <h3 className="tool-title">Momentum</h3>
+                <p className="tool-description">
+                  Plan projects, track progress, and manage timelines in one place
                 </p>
                 <div className="tool-link">
                   Open <ArrowForward style={{ fontSize: 16, marginLeft: 4 }} />

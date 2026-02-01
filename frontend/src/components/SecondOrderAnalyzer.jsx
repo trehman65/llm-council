@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, X, ChevronRight, Lightbulb, AlertTriangle, TrendingUp, Network } from 'lucide-react';
+import { Plus, X, ChevronRight, Lightbulb, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConversationHistory from './ConversationHistory';
 import { api } from '../api';
@@ -10,7 +10,7 @@ import './SecondOrderAnalyzer.css';
 const SecondOrderAnalyzer = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, token, loading: authLoading, openLoginModal } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const isGuest = !token;
   const conversationHistoryRef = useRef(null);
 
@@ -852,13 +852,6 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
 
   return (
     <div className="second-order-container">
-      {isGuest && (
-        <div className="guest-header">
-          <span className="guest-header-title">Second-Order Analyzer</span>
-          <button className="guest-signin-btn" onClick={openLoginModal}>Sign in</button>
-        </div>
-      )}
-
       {!isGuest && (
         <ConversationHistory
           ref={conversationHistoryRef}
@@ -869,18 +862,6 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
       )}
 
       <div className={`second-order-content ${isGuest ? 'guest-mode' : ''}`}>
-        <div className="second-order-header">
-          <button onClick={() => navigate('/')} className="back-button" title="Back to Home">
-            <ArrowBack style={{ fontSize: 24 }} />
-          </button>
-          <div className="second-order-title-section">
-            <div className="second-order-icon-large">
-              <Network style={{ fontSize: 20 }} />
-            </div>
-            <h1 className="second-order-title">Second-Order Effect Analyzer</h1>
-          </div>
-        </div>
-
         {error && (
           <div className="error-message">
             <AlertTriangle size={20} />
@@ -891,6 +872,17 @@ IMPORTANT: Return ONLY the JSON object. No preamble, no explanation, no markdown
         {/* Input Section */}
         {effects.length === 0 && (
           <div className="input-card">
+            <div className="input-card-header">
+              <button
+                onClick={() => navigate('/')}
+                className="input-back-button"
+                title="Back to Home"
+                aria-label="Back to Home"
+              >
+                <ArrowBack style={{ fontSize: 18 }} />
+              </button>
+              <h2 className="input-card-title">Second-Order Effect Analyzer</h2>
+            </div>
             <div className="input-group">
               <label>Problem Statement</label>
               <textarea

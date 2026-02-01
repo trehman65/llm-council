@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Users, MessageSquare, Trophy, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Trophy, Loader2 } from 'lucide-react';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -547,17 +547,7 @@ const LLMCouncil = () => {
   }
 
   return (
-    <div className="llm-council-container">
-      {/* Guest mode header */}
-      {isGuest && (
-        <div className="guest-header">
-          <span className="guest-header-title">LLM Council</span>
-          <button className="guest-signin-btn" onClick={openLoginModal}>
-            Sign in
-          </button>
-        </div>
-      )}
-      
+    <div className={`llm-council-container ${isGuest ? 'no-sidebar' : 'with-sidebar'}`}>
       {/* Show conversation history only for logged-in users */}
       {!isGuest && (
         <ConversationHistory
@@ -594,20 +584,6 @@ const LLMCouncil = () => {
       )}
       
       <div className="llm-council-content">
-        <div className="llm-council-header">
-          <button
-            onClick={() => navigate('/')}
-            className="back-to-home-button-header"
-            title="Back to Home"
-            aria-label="Back to Home"
-          >
-            <ArrowBack style={{ fontSize: 24 }} />
-          </button>
-          <div className="header-title">
-            <Users className="header-icon" />
-            <h1 className="header-text">LLM Council</h1>
-          </div>
-        </div>
 
         {showDebug && (
           <div className="error-message" style={{ backgroundColor: 'rgba(255, 193, 7, 0.2)', borderColor: '#ffc107' }}>
@@ -635,6 +611,17 @@ const LLMCouncil = () => {
 
         {stage === 'input' && (
           <div className="council-card">
+            <div className="council-card-header">
+              <button
+                onClick={() => navigate('/')}
+                className="council-back-button"
+                title="Back to Home"
+                aria-label="Back to Home"
+              >
+                <ArrowBack style={{ fontSize: 18 }} />
+              </button>
+              <h2 className="council-card-title">LLM Council</h2>
+            </div>
             <div className="input-section">
               <label className="input-label">Ask the Council</label>
               <textarea

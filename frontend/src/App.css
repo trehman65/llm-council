@@ -2,6 +2,83 @@
   box-sizing: border-box;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+html, body {
+  font-family: 'Outfit', sans-serif;
+}
+
+.global-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(88, 28, 135, 0.9), rgba(15, 23, 42, 0.9));
+  border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.global-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.global-brand {
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-brand-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.global-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.global-signin,
+.global-logout {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(30, 41, 59, 0.5);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.global-signin:hover,
+.global-logout:hover {
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #ffffff;
+}
+
+.global-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.global-user-name {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
 .app {
   display: flex;
   height: 100vh;
@@ -9,9 +86,7 @@
   overflow: hidden;
   background: #ffffff;
   color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: inherit;
   position: relative;
 }
 

@@ -14,6 +14,47 @@
   transition: margin-left 0.3s ease;
 }
 
+.council-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.council-back-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid #475569;
+  background: rgba(15, 23, 42, 0.6);
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.council-back-button:hover {
+  border-color: #a78bfa;
+  color: #e2e8f0;
+}
+
+.council-card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.llm-council-container.no-sidebar .llm-council-content {
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: var(--spacing-lg);
+  width: 100%;
+  max-width: 72rem;
+}
+
 /* Adjust content when sidebar is closed (mobile) */
 @media (max-width: 768px) {
   .llm-council-container {
@@ -858,7 +899,7 @@
   background-color: rgba(0, 0, 0, 0.3);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 0.9em;
 }
 
@@ -1202,7 +1243,7 @@
   background-color: rgba(0, 0, 0, 0.3);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 0.9em;
 }
 
@@ -1348,7 +1389,7 @@
   background-color: rgba(0, 0, 0, 0.3);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
   font-size: 0.9em;
 }
 
