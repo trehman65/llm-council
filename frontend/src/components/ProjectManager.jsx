@@ -501,19 +501,6 @@ const ProjectManager = () => {
     updateProject(projectId, { todos: newTodos, progress });
   };
 
-  const exportReport = () => {
-    const report = {
-      date: new Date().toISOString(),
-      total: projects.length,
-      projects: projects.map(p => ({ name: p.name, status: p.status, progress: p.progress }))
-    };
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `report-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-  };
-
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -554,25 +541,20 @@ const ProjectManager = () => {
 
       <div className="max-w-7xl mx-auto mb-8">
         <div className="bg-slate-900/60 rounded-2xl shadow-lg p-6 border border-slate-700/60 backdrop-blur">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3">
-                <a
-                  href="/"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-700 bg-slate-900/40 text-slate-200 shadow-sm hover:border-slate-500 hover:text-white hover:shadow"
-                  title="Back to Home"
-                >
-                  <Icons.ChevronLeft />
-                </a>
-                <h1 className="text-2xl font-semibold text-slate-100">
-                  Momentum
-                </h1>
-              </div>
-              <p className="text-slate-400 mt-1 text-sm">Keep product work moving forward</p>
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <a
+                href="/"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-700 bg-slate-900/40 text-slate-200 shadow-sm hover:border-slate-500 hover:text-white hover:shadow"
+                title="Back to Home"
+              >
+                <Icons.ChevronLeft />
+              </a>
+              <h1 className="text-2xl font-semibold text-slate-100">
+                Momentum
+              </h1>
             </div>
-            <button onClick={exportReport} className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 border border-slate-600">
-              <Icons.Download /> Export
-            </button>
+            <p className="text-slate-400 mt-1 text-sm">Keep product work moving forward</p>
           </div>
 
           <div className="flex gap-3 flex-wrap">
@@ -627,16 +609,16 @@ const ProjectManager = () => {
                 <div 
                   key={project.id} 
                   onClick={() => { setSelectedProject(project); setActiveTab('details'); }}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/60 cursor-pointer"
+                  className="flex gap-3 px-4 py-4 hover:bg-slate-800/60 cursor-pointer"
                 >
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveEmojiPicker(activeEmojiPicker === project.id ? null : project.id);
                       }}
-                      className="w-10 h-10 flex-shrink-0 rounded-lg border border-slate-700 bg-slate-900/40 flex items-center justify-center text-lg hover:bg-slate-800"
+                      className="w-12 h-12 rounded-lg border border-slate-700 bg-slate-900/40 flex items-center justify-center text-xl hover:bg-slate-800"
                       title="Change emoji"
                     >
                       {project.emoji || '📁'}
@@ -653,33 +635,34 @@ const ProjectManager = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-sm truncate text-slate-100">{project.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`health-${project.health} w-2.5 h-2.5 rounded-full`}></span>
-                          <span className="text-xs text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{project.status}</span>
-                          <span className="text-xs text-slate-500">•</span>
-                          <span className="text-xs text-slate-400 flex items-center gap-1"><Icons.Clock /> {project.startDate}</span>
-                          {project.todos.length > 0 && (
-                            <>
-                              <span className="text-xs text-slate-500">•</span>
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <Icons.CheckCircle /> {project.todos.filter(t => t.completed).length}/{project.todos.length}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs text-slate-400 font-medium">{project.progress}%</div>
+                    {/* Title row with progress */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-base text-slate-100 leading-tight">{project.name}</h3>
+                      <span className="text-sm text-slate-400 font-medium flex-shrink-0">{project.progress}%</span>
                     </div>
-                    <div className="mt-2">
-                      <div className="w-full bg-slate-800 rounded-full h-1.5">
-                        <div 
-                          className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" 
-                          style={{ width: `${project.progress}%` }}
-                        />
+                    
+                    {/* Meta info - wraps on mobile */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`health-${project.health} w-2 h-2 rounded-full flex-shrink-0`}></span>
+                        <span className="text-xs text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">{project.status}</span>
                       </div>
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Icons.Clock /> {project.startDate}
+                      </span>
+                      {project.todos.length > 0 && (
+                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                          <Icons.CheckCircle /> {project.todos.filter(t => t.completed).length}/{project.todos.length}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className="w-full bg-slate-800 rounded-full h-1.5">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" 
+                        style={{ width: `${project.progress}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1255,12 +1238,12 @@ const ProjectManager = () => {
                         })
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
                       <input 
                         type="text" 
                         id={`link-title-${selectedProject.id}`}
                         placeholder="Link title (optional)"
-                        className="flex-1 px-3 py-2 border border-slate-700 bg-slate-900/60 text-slate-100 rounded-lg text-sm"
+                        className="w-full px-3 py-2.5 border border-slate-700 bg-slate-900/60 text-slate-100 rounded-lg text-sm"
                         autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
@@ -1270,7 +1253,7 @@ const ProjectManager = () => {
                         type="url" 
                         id={`link-url-${selectedProject.id}`}
                         placeholder="https://..."
-                        className="flex-1 px-3 py-2 border border-slate-700 bg-slate-900/60 text-slate-100 rounded-lg text-sm"
+                        className="w-full px-3 py-2.5 border border-slate-700 bg-slate-900/60 text-slate-100 rounded-lg text-sm"
                         autoComplete="off"
                         data-lpignore="true"
                         data-1p-ignore="true"
@@ -1292,7 +1275,7 @@ const ProjectManager = () => {
                             urlInput.value = '';
                           }
                         }}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm"
+                        className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium"
                       >
                         Add Link
                       </button>
