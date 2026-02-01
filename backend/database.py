@@ -49,6 +49,14 @@ def get_sessions_collection() -> Optional[Collection]:
     return db["sessions"]
 
 
+def get_momentum_projects_collection() -> Optional[Collection]:
+    """Get Momentum projects collection."""
+    db = get_database()
+    if db is None:
+        return None
+    return db["momentum_projects"]
+
+
 def close_connection():
     """Close database connection."""
     global _client, _db

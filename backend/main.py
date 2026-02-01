@@ -189,6 +189,11 @@ class SecondOrderAnalysisRequest(BaseModel):
         return v.strip()
 
 
+class MomentumProjectsRequest(BaseModel):
+    """Request to save Momentum projects for a user."""
+    projects: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 class ConversationMetadata(BaseModel):
     """Conversation metadata for list view."""
     id: str
@@ -336,6 +341,24 @@ async def logout(
         token = auth_header[7:]  # Remove "Bearer " prefix
         auth.delete_session(token)
     return {"message": "Logged out successfully"}
+
+
+# ==================== Momentum Projects ====================
+
+@app.get("/api/momentum/projects")
+async def list_momentum_projects(current_user: Dict[str, Any] = Depends(auth.get_current_user)):
+    """List Momentum projects for the current user."""
+    return {"projects": storage.list_momentum_projects(user_id=current_user["id"])}
+
+
+@app.put("/api/momentum/projects")
+async def save_momentum_projects(
+    request: MomentumProjectsRequest,
+    current_user: Dict[str, Any] = Depends(auth.get_current_user)
+):
+    """Save Momentum projects for the current user."""
+    storage.save_momentum_projects(user_id=current_user["id"], projects=request.projects)
+    return {"message": "Projects saved"}
 
 
 # ==================== Authenticated Conversation Endpoints ====================

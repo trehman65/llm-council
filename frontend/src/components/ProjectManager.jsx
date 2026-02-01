@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { api } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 const Icons = {
   Plus: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
@@ -375,6 +377,9 @@ const GanttChart = ({ projects, onSelectProject }) => {
 
 const ProjectManager = () => {
   const [projects, setProjects] = useState([]);
+  const { token, user, loading: authLoading, openLoginModal } = useAuth();
+  const didLoadProjectsRef = useRef(false);
+  const saveTimeoutRef = useRef(null);
   const [statuses] = useState(['To do', 'Discovery', 'Development', 'Testing', 'A/B test', 'Launched']);
   const emojiOptions = [
     '📁','📂','🗂️','📌','📝','📒','📓','📔','📋','📊','📈','📉','🗓️','⏱️','⏳','🧭','🧪','🧫','🔬','🧰',
@@ -407,6 +412,55 @@ const ProjectManager = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showNewProject, setShowNewProject] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      openLoginModal();
+    }
+  }, [authLoading, user, openLoginModal]);
+
+  useEffect(() => {
+    if (!token || !user) {
+      setProjects([]);
+      return;
+    }
+    let isCancelled = false;
+    const loadProjects = async () => {
+      try {
+        const result = await api.getMomentumProjects(token);
+        if (!isCancelled) {
+          setProjects(result.projects || []);
+          didLoadProjectsRef.current = true;
+        }
+      } catch (error) {
+        console.error('Failed to load Momentum projects:', error);
+        didLoadProjectsRef.current = true;
+      }
+    };
+    loadProjects();
+    return () => {
+      isCancelled = true;
+    };
+  }, [token, user]);
+
+  useEffect(() => {
+    if (!token || !user || !didLoadProjectsRef.current) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await api.saveMomentumProjects(token, projects);
+      } catch (error) {
+        console.error('Failed to save Momentum projects:', error);
+      }
+    }, 600);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [projects, token, user]);
 
   const generateId = () => `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 

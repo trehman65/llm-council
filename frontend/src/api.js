@@ -87,6 +87,36 @@ export const api = {
   },
 
   /**
+   * Momentum projects: list projects for current user.
+   */
+  async getMomentumProjects(token) {
+    const response = await fetch(`${API_BASE}/api/momentum/projects`, {
+      headers: getAuthHeaders(token),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to load Momentum projects');
+    }
+    return response.json();
+  },
+
+  /**
+   * Momentum projects: save projects for current user.
+   */
+  async saveMomentumProjects(token, projects) {
+    const response = await fetch(`${API_BASE}/api/momentum/projects`, {
+      method: 'PUT',
+      headers: getAuthHeaders(token),
+      credentials: 'include',
+      body: JSON.stringify({ projects }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to save Momentum projects');
+    }
+    return response.json();
+  },
+
+  /**
    * List all conversations.
    */
   async listConversations(token) {

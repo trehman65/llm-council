@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from .config import DATA_DIR
-from .database import get_conversations_collection
+from .database import get_conversations_collection, get_momentum_projects_collection
 
 
 def ensure_data_dir():
@@ -39,6 +39,20 @@ def get_conversation_path(conversation_id: str) -> str:
     """Get the file path for a conversation."""
     safe_id = sanitize_id(conversation_id)
     return os.path.join(DATA_DIR, f"{safe_id}.json")
+
+
+MOMENTUM_DIR = "data/momentum_projects"
+
+
+def ensure_momentum_dir():
+    """Ensure the Momentum data directory exists."""
+    Path(MOMENTUM_DIR).mkdir(parents=True, exist_ok=True)
+
+
+def get_momentum_path(user_id: str) -> str:
+    """Get the file path for a user's Momentum projects."""
+    safe_id = sanitize_id(user_id)
+    return os.path.join(MOMENTUM_DIR, f"{safe_id}.json")
 
 
 def create_conversation(conversation_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
@@ -162,40 +176,44 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         # Sort by creation time, newest first
         conversations.sort(key=lambda x: x["created_at"], reverse=True)
         return conversations
-    else:
-        # File storage fallback
-        ensure_data_dir()
-        conversations = []
-        for filename in os.listdir(DATA_DIR):
-            if filename.endswith('.json'):
-                path = os.path.join(DATA_DIR, filename)
-                with open(path, 'r') as f:
-                    data = json.load(f)
-                    
-                    # Filter by user_id if provided
-                    if user_id is not None:
-                        if data.get("user_id") != user_id:
-                            continue
-                    
-                # Get first user message (the original question)
-                first_question = None
-                for msg in data.get("messages", []):
-                    if msg.get("role") == "user":
-                        first_question = msg.get("content", "")
-                        break
-                
-                # Return metadata only
-                conversations.append({
-                    "id": data["id"],
-                    "created_at": data["created_at"],
-                    "title": data.get("title", "New Conversation"),
-                    "message_count": len(data["messages"]),
-                    "first_question": first_question
-                })
 
-        # Sort by creation time, newest first
-        conversations.sort(key=lambda x: x["created_at"], reverse=True)
-        return conversations
+
+def list_momentum_projects(user_id: str) -> List[Dict[str, Any]]:
+    """List Momentum projects for a user."""
+    collection = get_momentum_projects_collection()
+    if collection is not None:
+        result = collection.find_one({"user_id": user_id})
+        if result and "projects" in result:
+            return result["projects"]
+        return []
+    ensure_momentum_dir()
+    path = get_momentum_path(user_id)
+    if not os.path.exists(path):
+        return []
+    with open(path, 'r') as f:
+        data = json.load(f)
+        return data.get("projects", [])
+
+
+def save_momentum_projects(user_id: str, projects: List[Dict[str, Any]]):
+    """Save Momentum projects for a user."""
+    payload = {
+        "user_id": user_id,
+        "projects": projects,
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    collection = get_momentum_projects_collection()
+    if collection is not None:
+        collection.update_one(
+            {"user_id": user_id},
+            {"$set": payload},
+            upsert=True
+        )
+        return
+    ensure_momentum_dir()
+    path = get_momentum_path(user_id)
+    with open(path, 'w') as f:
+        json.dump(payload, f, indent=2)
 
 
 def add_user_message(conversation_id: str, content: str):
