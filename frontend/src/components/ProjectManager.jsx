@@ -282,27 +282,33 @@ const GanttChart = ({ projects, onSelectProject }) => {
 
   return (
     <div className="bg-slate-900/70 rounded-xl shadow-lg overflow-hidden border border-slate-700/60 backdrop-blur text-slate-100">
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900/80 to-indigo-900/40">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100">Project Timeline</h2>
-          <p className="text-xs text-slate-400">Track delivery windows across the next 3 months</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => navigateMonth(-1)}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-200 border border-slate-800"
-          >
-            <Icons.ChevronLeft />
-          </button>
-          <span className="text-sm font-medium min-w-[120px] text-center text-slate-200">
-            {getMonthName(viewStart)}
-          </span>
-          <button 
-            onClick={() => navigateMonth(1)}
-            className="p-2 hover:bg-slate-800 rounded-lg text-slate-200 border border-slate-800"
-          >
-            <Icons.ChevronRight />
-          </button>
+      {/* Compact header */}
+      <div className="px-3 py-2.5 sm:p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900/80 to-indigo-900/40">
+        <div className="flex items-center justify-between gap-2">
+          {/* Title */}
+          <div>
+            <h2 className="text-base sm:text-xl font-semibold text-slate-100">Project Timeline</h2>
+            <p className="text-xs text-slate-400 hidden sm:block">Track delivery windows across the next 3 months</p>
+          </div>
+          
+          {/* Month Navigator - Compact */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button 
+              onClick={() => navigateMonth(-1)}
+              className="p-1.5 sm:p-2 hover:bg-slate-800 rounded-lg text-slate-200 border border-slate-700 active:bg-slate-700"
+            >
+              <Icons.ChevronLeft />
+            </button>
+            <span className="text-xs sm:text-sm font-semibold min-w-[70px] sm:min-w-[120px] text-center text-slate-100">
+              {getMonthName(viewStart)}
+            </span>
+            <button 
+              onClick={() => navigateMonth(1)}
+              className="p-1.5 sm:p-2 hover:bg-slate-800 rounded-lg text-slate-200 border border-slate-700 active:bg-slate-700"
+            >
+              <Icons.ChevronRight />
+            </button>
+          </div>
         </div>
       </div>
       
@@ -318,7 +324,8 @@ const GanttChart = ({ projects, onSelectProject }) => {
               <div className="w-48 flex-shrink-0 p-3 font-semibold text-slate-200 border-r border-slate-800">
                 Project
               </div>
-              <div className="flex-1 flex">
+              {/* Month names - hidden on mobile since it's in the header */}
+              <div className="flex-1 hidden sm:flex">
                 {months.map((month, idx) => (
                   <div 
                     key={idx} 
