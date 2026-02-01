@@ -1,16 +1,22 @@
 import { useNavigate } from 'react-router-dom';
 import { Groups, ArrowForward, ViewKanban } from '@mui/icons-material';
 import { Network } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import './HomePage.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { user, openLoginModal } = useAuth();
   const handleSelectTool = (tool) => {
     if (tool === 'llm-council') {
       navigate('/llm-council');
     } else if (tool === 'second-order') {
       navigate('/second-order');
     } else if (tool === 'project-manager') {
+      if (!user) {
+        openLoginModal();
+        return;
+      }
       navigate('/project-manager');
     }
   };

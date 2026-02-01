@@ -30,9 +30,9 @@ export default function Login({ onClose }) {
       <div className="login-container">
         <div className="login-card">
         <div className="login-header">
-          <h1 className="login-title">Sign in to save your chat history</h1>
+          <h1 className="login-title">Sign in to access all features.</h1>
           <p className="login-subtitle">
-            Multiple AI models debate to answer your hardest questions
+            Tools built for your success.
           </p>
         </div>
 
