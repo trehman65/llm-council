@@ -220,25 +220,6 @@ export const api = {
   },
 
   /**
-   * Add a user message without processing (for storing messages without triggering LLM Council).
-   */
-  async addUserMessage(conversationId, content, token) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/user-message`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(token),
-        credentials: 'include',
-        body: JSON.stringify({ content }),
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to add user message');
-    }
-    return response.json();
-  },
-
-  /**
    * Add a raw assistant message without processing (for storing structured data).
    */
   async addAssistantMessage(conversationId, content, token) {

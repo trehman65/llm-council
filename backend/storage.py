@@ -176,6 +176,46 @@ def list_conversations(user_id: Optional[str] = None) -> List[Dict[str, Any]]:
         # Sort by creation time, newest first
         conversations.sort(key=lambda x: x["created_at"], reverse=True)
         return conversations
+    
+    # File storage fallback
+    ensure_data_dir()
+    conversations = []
+    
+    if not os.path.exists(DATA_DIR):
+        return []
+    
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.json'):
+            try:
+                filepath = os.path.join(DATA_DIR, filename)
+                with open(filepath, 'r') as f:
+                    conv = json.load(f)
+                
+                # Filter by user_id if specified
+                if user_id is not None and conv.get("user_id") != user_id:
+                    continue
+                
+                # Get first user message (the original question)
+                first_question = None
+                for msg in conv.get("messages", []):
+                    if msg.get("role") == "user":
+                        first_question = msg.get("content", "")
+                        break
+                
+                conversations.append({
+                    "id": conv["id"],
+                    "created_at": conv["created_at"],
+                    "title": conv.get("title", "New Conversation"),
+                    "message_count": len(conv.get("messages", [])),
+                    "first_question": first_question
+                })
+            except (json.JSONDecodeError, KeyError, IOError):
+                # Skip invalid files
+                continue
+    
+    # Sort by creation time, newest first
+    conversations.sort(key=lambda x: x["created_at"], reverse=True)
+    return conversations
 
 
 def list_momentum_projects(user_id: str) -> List[Dict[str, Any]]:

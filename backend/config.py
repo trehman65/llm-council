@@ -8,6 +8,10 @@ load_dotenv()
 
 # OpenRouter API key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    if os.getenv("ENVIRONMENT") == "production" or os.getenv("PORT"):
+        raise ValueError("OPENROUTER_API_KEY environment variable must be set in production")
+    print("⚠️ WARNING: OPENROUTER_API_KEY not set. LLM features will not work.")
 
 # Council members - list of OpenRouter model identifiers
 COUNCIL_MODELS = [

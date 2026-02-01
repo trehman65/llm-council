@@ -34,7 +34,7 @@ function AppContent() {
       {!hideHeader && (
         <header className="global-header">
           <div className="global-header-inner">
-            <button className="global-brand" onClick={() => navigate('/')}>
+            <button className="global-brand" onClick={() => navigate('/')} title="Go to Home">
               <span className="global-brand-emoji" aria-hidden="true">🚀</span>
               Better PM
             </button>

@@ -1,5 +1,7 @@
 """FastAPI backend for LLM Council."""
 
+import logging
+import sys
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse
@@ -12,6 +14,16 @@ import json
 import asyncio
 import os
 from urllib.parse import urlencode
+
+# Configure logging for production
+logging.basicConfig(
+    level=logging.INFO if os.getenv("ENVIRONMENT") == "production" else logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 from . import storage
 from . import auth
@@ -158,13 +170,6 @@ class SendMessageRequest(BaseModel):
     @field_validator('content')
     @classmethod
     def validate_content(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Content cannot be empty")
-        return v.strip()
-    
-    @field_validator('content')
-    @classmethod
-    def validate_content(cls, v: str) -> str:
         """Validate and sanitize message content."""
         if not v or not v.strip():
             raise ValueError("Message content cannot be empty")
@@ -189,9 +194,29 @@ class SecondOrderAnalysisRequest(BaseModel):
         return v.strip()
 
 
+class MomentumProject(BaseModel):
+    """Individual Momentum project schema."""
+    id: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=200)
+    status: str = Field(..., max_length=50)
+    health: str = Field(..., pattern=r'^(green|yellow|red)$')
+    emoji: str = Field(default='📁', max_length=10)
+    startDate: str = Field(default='', max_length=20)
+    endDate: str = Field(default='', max_length=20)
+    notes: str = Field(default='', max_length=50000)  # Rich text content
+    tags: List[str] = Field(default_factory=list, max_length=20)
+    todos: List[Dict[str, Any]] = Field(default_factory=list)
+    progress: int = Field(default=0, ge=0, le=100)
+    team: Dict[str, Any] = Field(default_factory=dict)
+    docs: Dict[str, Any] = Field(default_factory=dict)
+    
+    class Config:
+        extra = 'ignore'  # Ignore extra fields for forward compatibility
+
+
 class MomentumProjectsRequest(BaseModel):
     """Request to save Momentum projects for a user."""
-    projects: List[Dict[str, Any]] = Field(default_factory=list)
+    projects: List[MomentumProject] = Field(default_factory=list, max_length=100)  # Max 100 projects per user
 
 
 class ConversationMetadata(BaseModel):
@@ -357,7 +382,9 @@ async def save_momentum_projects(
     current_user: Dict[str, Any] = Depends(auth.get_current_user)
 ):
     """Save Momentum projects for the current user."""
-    storage.save_momentum_projects(user_id=current_user["id"], projects=request.projects)
+    # Convert validated Pydantic models to dicts for storage
+    projects_data = [project.model_dump() for project in request.projects]
+    storage.save_momentum_projects(user_id=current_user["id"], projects=projects_data)
     return {"message": "Projects saved"}
 
 
@@ -581,8 +608,10 @@ async def send_message_stream(
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
 
         except Exception as e:
-            # Send error event
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            # Send error event - sanitize error message to prevent info disclosure
+            import logging
+            logging.error(f"Stream error: {str(e)}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'message': 'An error occurred while processing your request'})}\n\n"
 
     return StreamingResponse(
         event_generator(),
@@ -624,8 +653,10 @@ async def guest_message_stream(request: SendMessageRequest):
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
 
         except Exception as e:
-            # Send error event
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            # Send error event - sanitize error message to prevent info disclosure
+            import logging
+            logging.error(f"Guest stream error: {str(e)}", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'message': 'An error occurred while processing your request'})}\n\n"
 
     return StreamingResponse(
         event_generator(),
@@ -732,7 +763,7 @@ async def analyze_second_order_stream(
         except Exception as e:
             import logging
             logging.error(f"Second-order analysis error: {str(e)}", exc_info=True)
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'An error occurred during analysis'})}\n\n"
 
     return StreamingResponse(
         event_generator(),
@@ -836,7 +867,7 @@ async def analyze_second_order_conversation_stream(
         except Exception as e:
             import logging
             logging.error(f"Second-order analysis error: {str(e)}", exc_info=True)
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': 'An error occurred during analysis'})}\n\n"
 
     return StreamingResponse(
         event_generator(),

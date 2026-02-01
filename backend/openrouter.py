@@ -21,6 +21,10 @@ async def query_model(
     Returns:
         Response dict with 'content' and optional 'reasoning_details', or None if failed
     """
+    if not OPENROUTER_API_KEY:
+        print("Error: OPENROUTER_API_KEY is not configured")
+        return None
+
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -49,7 +53,9 @@ async def query_model(
             }
 
     except Exception as e:
-        print(f"Error querying model {model}: {e}")
+        # Log error without exposing full details in production
+        import logging
+        logging.error(f"Error querying model {model}: {str(e)}")
         return None
 
 

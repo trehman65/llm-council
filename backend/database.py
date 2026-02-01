@@ -1,9 +1,11 @@
 """Database connection and utilities for MongoDB."""
 
+import os
 from typing import Optional
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from .config import MONGODB_URI, DB_NAME, USE_DATABASE
 
 _client: Optional[MongoClient] = None
@@ -19,8 +21,24 @@ def get_database() -> Optional[Database]:
     
     if _db is None:
         global _client
-        _client = MongoClient(MONGODB_URI)
-        _db = _client[DB_NAME]
+        try:
+            # Production-ready connection settings
+            _client = MongoClient(
+                MONGODB_URI,
+                serverSelectionTimeoutMS=5000,  # 5 second timeout
+                connectTimeoutMS=10000,  # 10 second connection timeout
+                retryWrites=True,
+                # TLS is handled by the connection string on Render
+            )
+            # Test the connection
+            _client.admin.command('ping')
+            _db = _client[DB_NAME]
+        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            import logging
+            logging.error(f"Failed to connect to MongoDB: {str(e)}")
+            _client = None
+            _db = None
+            return None
     
     return _db
 

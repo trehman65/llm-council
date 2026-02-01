@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,9 +30,19 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
   const editorRef = useRef(null);
   const savedSelectionRef = useRef(null);
 
+  // Configure DOMPurify to allow safe HTML elements
+  const sanitizeConfig = {
+    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'p', 'br', 'b', 'strong', 'i', 'em', 'u', 'ul', 'ol', 'li', 'a', 'img'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'target', 'rel'],
+    ADD_ATTR: ['target'], // Allow target attribute for links
+    FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+  };
+
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || '';
+      // Sanitize content before setting innerHTML
+      editorRef.current.innerHTML = DOMPurify.sanitize(value || '', sanitizeConfig);
     }
   }, []);
 
@@ -59,7 +70,9 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
 
   const handleInput = () => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      // Sanitize content before saving
+      const sanitizedContent = DOMPurify.sanitize(editorRef.current.innerHTML, sanitizeConfig);
+      onChange(sanitizedContent);
     }
   };
 
@@ -1325,14 +1338,21 @@ const ProjectManager = () => {
                         className="hidden"
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
-                          const newFiles = files.map(f => ({
-                            name: f.name,
-                            size: f.size < 1024 ? `${f.size} B` : 
-                                  f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(1)} KB` : 
-                                  `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
-                            type: f.type,
-                            data: URL.createObjectURL(f)
-                          }));
+                          // Only store metadata - files are stored in browser memory via object URLs
+                          // Note: Object URLs are automatically revoked when the page is unloaded
+                          const newFiles = files.map(f => {
+                            // Create object URL for preview
+                            const objectUrl = URL.createObjectURL(f);
+                            return {
+                              name: f.name,
+                              size: f.size < 1024 ? `${f.size} B` : 
+                                    f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(1)} KB` : 
+                                    `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+                              type: f.type,
+                              // Note: Object URLs don't persist across sessions - use for preview only
+                              // For production, implement proper file upload to cloud storage
+                            };
+                          });
                           updateProject(selectedProject.id, { 
                             docs: { 
                               ...selectedProject.docs, 
