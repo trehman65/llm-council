@@ -4,9 +4,10 @@
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - var(--global-header-height));
   position: relative;
-  z-index: 1000;
+  z-index: 900;
+  margin-top: var(--global-header-height);
   transition: transform 0.3s ease-in-out;
 }
 
@@ -107,8 +108,8 @@
   .sidebar {
     position: fixed;
     left: 0;
-    top: 0;
-    height: 100vh;
+    top: var(--global-header-height);
+    height: calc(100vh - var(--global-header-height));
     transform: translateX(-100%);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }

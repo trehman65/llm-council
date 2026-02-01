@@ -732,7 +732,13 @@ const ProjectManager = () => {
             className="absolute inset-0 bg-black/60"
             onClick={() => setSelectedProject(null)}
           />
-          <div className="absolute inset-y-0 right-0 w-full max-w-5xl bg-slate-900 text-slate-100 shadow-2xl flex flex-col border-l border-slate-700">
+          <div
+            className="absolute right-0 w-full max-w-5xl bg-slate-900 text-slate-100 shadow-2xl flex flex-col border-l border-slate-700"
+            style={{
+              top: 'var(--global-header-height)',
+              height: 'calc(100vh - var(--global-header-height))',
+            }}
+          >
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -1297,7 +1303,13 @@ const ProjectManager = () => {
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowNewProject(false)}
           />
-          <div className="absolute inset-y-0 right-0 w-full max-w-xl bg-slate-900 text-slate-100 shadow-2xl flex flex-col border-l border-slate-700">
+          <div
+            className="absolute right-0 w-full max-w-xl bg-slate-900 text-slate-100 shadow-2xl flex flex-col border-l border-slate-700"
+            style={{
+              top: 'var(--global-header-height)',
+              height: 'calc(100vh - var(--global-header-height))',
+            }}
+          >
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="relative">
