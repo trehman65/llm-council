@@ -540,8 +540,9 @@ const ProjectManager = () => {
       `}</style>
 
       <div className="max-w-7xl mx-auto mb-8">
-        <div className="bg-slate-900/60 rounded-2xl shadow-lg p-6 border border-slate-700/60 backdrop-blur">
-          <div className="mb-6">
+        <div className="bg-slate-900/60 rounded-2xl shadow-lg p-4 sm:p-6 border border-slate-700/60 backdrop-blur">
+          {/* Header: Mobile has New Project button in header row */}
+          <div className="flex items-center justify-between gap-3 mb-2 sm:mb-6">
             <div className="flex items-center gap-3">
               <a
                 href="/"
@@ -550,34 +551,50 @@ const ProjectManager = () => {
               >
                 <Icons.ChevronLeft />
               </a>
-              <h1 className="text-2xl font-semibold text-slate-100">
-                Momentum
-              </h1>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-slate-100">
+                  Momentum
+                </h1>
+                <p className="text-slate-400 text-xs sm:text-sm hidden sm:block">Keep product work moving forward</p>
+              </div>
             </div>
-            <p className="text-slate-400 mt-1 text-sm">Keep product work moving forward</p>
+            {/* Mobile: New Project in header */}
+            <button 
+              onClick={() => setShowNewProject(true)} 
+              className="sm:hidden flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-sm font-medium"
+            >
+              <Icons.Plus /> New
+            </button>
           </div>
+          
+          {/* Mobile subtitle */}
+          <p className="text-slate-400 text-xs mb-4 sm:hidden">Keep product work moving forward</p>
 
-          <div className="flex gap-3 flex-wrap">
-            <div className="flex-1 min-w-[200px] relative">
+          {/* Controls row */}
+          <div className="space-y-3 sm:space-y-0 sm:flex sm:gap-3 sm:flex-wrap">
+            {/* Search - full width on mobile */}
+            <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
               <input 
                 type="text" 
                 placeholder="Search projects..." 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)} 
-                className="w-full pl-10 pr-4 py-2 border border-slate-700 bg-slate-900/40 text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
+                className="w-full pl-10 pr-4 py-2.5 sm:py-2 border border-slate-700 bg-slate-900/40 text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
                 autoComplete="off"
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-form-type="other"
               />
             </div>
-            <div className="flex gap-2 bg-slate-800/60 p-1 rounded-lg border border-slate-700/60">
+            
+            {/* View toggles - full width on mobile */}
+            <div className="flex bg-slate-800/60 p-1 rounded-lg border border-slate-700/60">
               {['list', 'timeline', 'kanban'].map(v => (
                 <button 
                   key={v} 
                   onClick={() => setView(v)} 
-                  className={`px-4 py-2 rounded-md ${
+                  className={`flex-1 sm:flex-initial px-4 py-2 rounded-md text-sm sm:text-base ${
                     view === v ? 'bg-slate-900 text-slate-100 shadow-sm font-medium' : 'text-slate-400'
                   }`}
                 >
@@ -585,9 +602,11 @@ const ProjectManager = () => {
                 </button>
               ))}
             </div>
+            
+            {/* Desktop: New Project button */}
             <button 
               onClick={() => setShowNewProject(true)} 
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg"
             >
               <Icons.Plus /> New Project
             </button>
