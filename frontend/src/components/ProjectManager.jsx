@@ -225,6 +225,8 @@ const GanttChart = ({ projects, onSelectProject }) => {
     today.setDate(1);
     return today;
   });
+  const [visibleMonthIndex, setVisibleMonthIndex] = useState(0);
+  const scrollContainerRef = useRef(null);
   
   const projectsWithDates = projects.filter(p => p.startDate);
   
@@ -247,6 +249,36 @@ const GanttChart = ({ projects, onSelectProject }) => {
   }
   
   const totalDays = months.reduce((sum, m) => sum + m.days, 0);
+  
+  // Track scroll position to update visible month on mobile
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      const scrollLeft = container.scrollLeft;
+      const projectColWidth = 192; // w-48 = 12rem = 192px
+      const timelineWidth = container.scrollWidth - projectColWidth;
+      const scrollableWidth = timelineWidth;
+      
+      // Calculate which month is visible based on scroll position
+      let accumulatedWidth = 0;
+      for (let i = 0; i < months.length; i++) {
+        const monthWidth = (months[i].days / totalDays) * scrollableWidth;
+        if (scrollLeft < accumulatedWidth + monthWidth / 2) {
+          setVisibleMonthIndex(i);
+          break;
+        }
+        accumulatedWidth += monthWidth;
+        if (i === months.length - 1) {
+          setVisibleMonthIndex(i);
+        }
+      }
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [months, totalDays]);
   
   const getBarPosition = (project) => {
     const start = new Date(project.startDate);
@@ -278,6 +310,7 @@ const GanttChart = ({ projects, onSelectProject }) => {
   
   const navigateMonth = (direction) => {
     setViewStart(prev => new Date(prev.getFullYear(), prev.getMonth() + direction, 1));
+    setVisibleMonthIndex(0); // Reset to first month when navigating
   };
 
   return (
@@ -299,8 +332,10 @@ const GanttChart = ({ projects, onSelectProject }) => {
             >
               <Icons.ChevronLeft />
             </button>
+            {/* Mobile: show currently visible month based on scroll | Desktop: show viewStart */}
             <span className="text-xs sm:text-sm font-semibold min-w-[70px] sm:min-w-[120px] text-center text-slate-100">
-              {getMonthName(viewStart)}
+              <span className="sm:hidden">{months[visibleMonthIndex]?.name || getMonthName(viewStart)}</span>
+              <span className="hidden sm:inline">{getMonthName(viewStart)}</span>
             </span>
             <button 
               onClick={() => navigateMonth(1)}
@@ -318,29 +353,48 @@ const GanttChart = ({ projects, onSelectProject }) => {
           <p className="text-sm mt-1">Add start dates to your projects to see them here</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            <div className="flex border-b border-slate-800 bg-slate-900/40">
-              <div className="w-48 flex-shrink-0 p-3 font-semibold text-slate-200 border-r border-slate-800">
-                Project
+        <div className="flex">
+          {/* Fixed project names column - doesn't scroll */}
+          <div className="w-36 sm:w-48 flex-shrink-0 bg-slate-900 z-10 border-r border-slate-800">
+            {/* Header */}
+            <div className="p-2 sm:p-3 font-semibold text-slate-200 border-b border-slate-800 bg-slate-900">
+              Project
+            </div>
+            {/* Days row spacer */}
+            <div className="h-[26px] border-b border-slate-800 bg-slate-900" />
+            {/* Project names */}
+            {projectsWithDates.map(project => (
+              <div 
+                key={project.id}
+                className="p-2 sm:p-3 border-b border-slate-800 h-16 flex flex-col justify-center cursor-pointer hover:bg-slate-800/40"
+                onClick={() => onSelectProject(project)}
+              >
+                <div className="font-semibold text-xs sm:text-sm truncate text-slate-100">{project.name}</div>
+                <div className="text-[10px] sm:text-xs text-slate-400 truncate">{project.status}</div>
               </div>
+            ))}
+          </div>
+          
+          {/* Scrollable timeline */}
+          <div ref={scrollContainerRef} className="flex-1 overflow-x-auto">
+            <div style={{ minWidth: '600px' }}>
               {/* Month names - hidden on mobile since it's in the header */}
-              <div className="flex-1 hidden sm:flex">
+              <div className="hidden sm:flex border-b border-slate-800 bg-slate-900/40">
                 {months.map((month, idx) => (
                   <div 
                     key={idx} 
-                    className="text-center py-2 text-sm font-semibold text-slate-200 border-r border-slate-800 last:border-r-0"
+                    className="text-center py-2 sm:py-3 text-sm font-semibold text-slate-200 border-r border-slate-800 last:border-r-0"
                     style={{ width: `${(month.days / totalDays) * 100}%` }}
                   >
                     {month.name}
                   </div>
                 ))}
               </div>
-            </div>
-            
-            <div className="flex border-b border-slate-800 bg-slate-900/30">
-              <div className="w-48 flex-shrink-0 border-r border-slate-800" />
-              <div className="flex-1 flex">
+              {/* Mobile: simple header spacer */}
+              <div className="sm:hidden h-[42px] border-b border-slate-800 bg-slate-900/40" />
+              
+              {/* Days row */}
+              <div className="flex border-b border-slate-800 bg-slate-900/30">
                 {months.map((month, mIdx) => (
                   <div 
                     key={mIdx} 
@@ -359,35 +413,32 @@ const GanttChart = ({ projects, onSelectProject }) => {
                   </div>
                 ))}
               </div>
+              
+              {/* Project timeline bars */}
+              {projectsWithDates.map(project => {
+                const barPos = getBarPosition(project);
+                return (
+                  <div 
+                    key={project.id} 
+                    className="flex border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer h-16"
+                    onClick={() => onSelectProject(project)}
+                  >
+                    <div className="flex-1 relative flex items-center">
+                      {barPos && (
+                        <div 
+                          className={`absolute h-8 rounded-full ${healthColors[project.health]} shadow-md flex items-center px-3 border border-white/10`}
+                          style={{ left: barPos.left, width: barPos.width, minWidth: '60px' }}
+                        >
+                          <span className="text-xs text-white font-medium truncate">
+                            {project.progress}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            
-            {projectsWithDates.map(project => {
-              const barPos = getBarPosition(project);
-              return (
-                <div 
-                  key={project.id} 
-                  className="flex border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer"
-                  onClick={() => onSelectProject(project)}
-                >
-                  <div className="w-48 flex-shrink-0 p-3 border-r border-slate-800">
-                    <div className="font-semibold text-sm truncate text-slate-100">{project.name}</div>
-                    <div className="text-xs text-slate-400">{project.status}</div>
-                  </div>
-                  <div className="flex-1 relative h-16 flex items-center">
-                    {barPos && (
-                      <div 
-                        className={`absolute h-8 rounded-full ${healthColors[project.health]} shadow-md flex items-center px-3 border border-white/10`}
-                        style={{ left: barPos.left, width: barPos.width, minWidth: '80px' }}
-                      >
-                        <span className="text-xs text-white font-medium truncate">
-                          {project.progress}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
